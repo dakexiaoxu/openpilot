@@ -175,6 +175,7 @@ class WMI(StrEnum):
   VOLKSWAGEN_ARGENTINA = "8AW"
   VOLKSWAGEN_BRASIL = "9BW"
   SAIC_VOLKSWAGEN = "LSV"
+  FAW_VOLKSWAGEN = "LFV"
   SKODA = "TMB"
   SEAT = "VSS"
   AUDI_EUROPE_MPV = "WA1"
@@ -356,12 +357,13 @@ class CAR(Platforms):
   )
   VOLKSWAGEN_JETTA_MK7 = VolkswagenMQBPlatformConfig(
     [
-      VWCarDocs("Volkswagen Jetta 2018-23"),
-      VWCarDocs("Volkswagen Jetta GLI 2021-23"),
+      VWCarDocs("Volkswagen Jetta 2018-24"),
+      VWCarDocs("Volkswagen Jetta GLI 2021-24"),
+      VWCarDocs("Volkswagen VOLKSWAGEN_JETTA_MK7"),
     ],
     VolkswagenCarSpecs(mass=1328, wheelbase=2.71),
     chassis_codes={"BU"},
-    wmis={WMI.VOLKSWAGEN_MEXICO_CAR, WMI.VOLKSWAGEN_EUROPE_CAR},
+    wmis={WMI.VOLKSWAGEN_MEXICO_CAR, WMI.VOLKSWAGEN_EUROPE_CAR, WMI.FAW_VOLKSWAGEN},
   )
   VOLKSWAGEN_PASSAT_MK8 = VolkswagenMQBPlatformConfig(
     [

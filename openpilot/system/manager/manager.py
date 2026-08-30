@@ -60,7 +60,11 @@ def write_supported_cars_files() -> None:
   ):
     try:
       values = importlib.import_module(f"opendbc.car.{brand}.values")
-      cars = sorted(doc.name for platform in values.CAR for doc in platform.config.car_docs)
+      cars = sorted({
+        name
+        for platform in values.CAR
+        for name in (*(doc.name for doc in platform.config.car_docs), f"{brand.capitalize()} {platform.name}")
+      })
       with open(os.path.join(params_path, filename), "w") as f:
         f.write("\n".join(cars))
         if cars:

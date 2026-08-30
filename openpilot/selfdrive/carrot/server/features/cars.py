@@ -49,6 +49,8 @@ def load_supported_cars() -> Tuple[List[str], Dict[str, List[str]]]:
             continue
           maker = parts[0]
           makers.setdefault(maker, set()).add(line)
+        maker_name = brand[0].upper() + brand[1:]
+        makers.setdefault(maker_name, set()).add(f"{maker_name} {platform.name}")
     except Exception:
       continue
 
