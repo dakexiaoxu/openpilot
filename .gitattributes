@@ -1,9 +1,12 @@
 * text=auto
 
-# Large binaries stay in Git LFS to keep clones small.
-*.onnx filter=lfs diff=lfs merge=lfs -text
+# C3 installer has no git-lfs. LFS pointers boot as 133-byte files and hang on
+# the comma logo. Boot-critical binaries must be real git blobs (<100MB).
+*.onnx -filter -diff -merge -text
 selfdrive/car/tests/test_models_segs.txt filter=lfs diff=lfs merge=lfs -text
-system/hardware/tici/updater filter=lfs diff=lfs merge=lfs -text
+system/hardware/tici/updater -filter -diff -merge -text
+openpilot/system/hardware/tici/updater -filter -diff -merge -text
+openpilot/selfdrive/modeld/models/driving_supercombo.onnx -filter -diff -merge -text
 
 # Image / font / sound types are shipped as REAL blobs in this fork. Declaring
 # them as LFS while the committed blob is real content made git-lfs report
