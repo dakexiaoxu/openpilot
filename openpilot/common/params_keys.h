@@ -380,7 +380,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"EVTable", {PERSISTENT, BOOL, "0"}},
     {"LongPitch", {PERSISTENT, BOOL, "0"}},
 
-    {"ActivateCruiseAfterBrake", {CLEAR_ON_MANAGER_START, INT, "0"}},
+    {"ActivateCruiseAfterBrake", {PERSISTENT, INT, "1"}},
 
     {"CustomSR", {PERSISTENT, INT, "0"}},
     {"SteerRatioRate", {PERSISTENT, INT, "100"}},

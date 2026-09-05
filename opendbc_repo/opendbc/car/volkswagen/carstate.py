@@ -1,5 +1,5 @@
-import math
 import numpy as np
+import math
 from opendbc.can import CANParser
 from opendbc.car import Bus, structs
 from opendbc.car.interfaces import CarStateBase
@@ -98,7 +98,10 @@ class CarState(CarStateBase):
 
     if True:
       # MQB-specific
-      self.upscale_lead_car_signal = bool(pt_cp.vl["Kombi_03"]["KBI_Variante"])  # Analog vs digital instrument cluster
+      try:
+        self.upscale_lead_car_signal = bool(pt_cp.vl["Kombi_03"]["KBI_Variante"])
+      except Exception:
+        self.upscale_lead_car_signal = False
 
       ret.wheelSpeeds = self.get_wheel_speeds(
         pt_cp.vl["ESP_19"]["ESP_VL_Radgeschw_02"],
@@ -466,30 +469,30 @@ class CarState(CarStateBase):
     if CP.flags & VolkswagenFlags.MEB:
       return CarState.get_can_parsers_meb(CP)
 
-    # MQB: explicit lists (v8). This fork's CANParser lazy-adds via vl[] and then
-    # times out missing optional frames (Kombi_03, radar on the other bus) → canError.
-    # Kombi_03 is not on older clusters; nan => ignore_alive (freq 0 is NOT optional here).
+    # MQB: explicit lists. This fork's CANParser lazy-adds via vl[] and then
+    # times out missing optional frames (Kombi_03, radar on the other bus) -> canError.
+    # Kombi_03 nan => ignore_alive (freq 0 is NOT optional here).
     pt_messages = [
-      ("LWI_01", 100),      # From J500 Steering Assist with integrated sensors
-      ("LH_EPS_03", 100),   # From J500 Steering Assist with integrated sensors
-      ("ESP_19", 100),      # From J104 ABS/ESP controller
-      ("ESP_05", 50),       # From J104 ABS/ESP controller
-      ("ESP_21", 50),       # From J104 ABS/ESP controller
-      ("Motor_20", 50),     # From J623 Engine control module
-      ("TSK_06", 50),       # From J623 Engine control module
-      ("ESP_02", 50),       # From J104 ABS/ESP controller
-      ("GRA_ACC_01", 33),   # From J533 CAN gateway (via LIN from steering wheel controls)
-      ("Gateway_73", 20),   # From J533 CAN gateway (aggregated data)
-      ("Gateway_72", 10),   # From J533 CAN gateway (aggregated data)
-      ("Motor_14", 10),     # From J623 Engine control module
-      ("Airbag_02", 5),     # From J234 Airbag control module
-      ("Kombi_01", 2),      # From J285 Instrument cluster
-      ("Blinkmodi_02", 1),  # From J519 BCM (1Hz idle, 50Hz when lights active)
-      ("Kombi_03", math.nan),  # From J285 (absent on older cars)
+      ("LWI_01", 100),
+      ("LH_EPS_03", 100),
+      ("ESP_19", 100),
+      ("ESP_05", 50),
+      ("ESP_21", 50),
+      ("Motor_20", 50),
+      ("TSK_06", 50),
+      ("ESP_02", 50),
+      ("GRA_ACC_01", 33),
+      ("Gateway_73", 20),
+      ("Gateway_72", 10),
+      ("Motor_14", 10),
+      ("Airbag_02", 5),
+      ("Kombi_01", 2),
+      ("Blinkmodi_02", 1),
+      ("Kombi_03", math.nan),
     ]
 
     if CP.transmissionType == TransmissionType.direct:
-      pt_messages.append(("Motor_EV_01", 10))  # From J??? unknown EV control module
+      pt_messages.append(("Motor_EV_01", 10))
 
     if CP.networkLocation == NetworkLocation.fwdCamera:
       pt_messages += MqbExtraSignals.fwd_radar_messages
@@ -499,12 +502,12 @@ class CarState(CarStateBase):
     cam_messages = []
     if CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
       cam_messages += [
-        ("HCA_01", 1),  # From R242 Driver assistance camera, 50Hz if steering/1Hz if not
+        ("HCA_01", 1),
       ]
 
     if CP.networkLocation == NetworkLocation.fwdCamera:
       cam_messages += [
-        ("LDW_02", 10),  # From R242 Driver assistance camera
+        ("LDW_02", 10),
       ]
     else:
       cam_messages += MqbExtraSignals.fwd_radar_messages
@@ -519,25 +522,25 @@ class CarState(CarStateBase):
   @staticmethod
   def get_can_parsers_pq(CP):
     pt_messages = [
-      ("Bremse_1", 100),    # From J104 ABS/ESP controller
-      ("Bremse_3", 100),    # From J104 ABS/ESP controller
-      ("Lenkhilfe_3", 100),  # From J500 Steering Assist with integrated sensors
-      ("Lenkwinkel_1", 100),  # From J500 Steering Assist with integrated sensors
-      ("Motor_3", 100),     # From J623 Engine control module
-      ("Airbag_1", 50),     # From J234 Airbag control module
-      ("Bremse_5", 50),     # From J104 ABS/ESP controller
-      ("GRA_Neu", 50),      # From J??? steering wheel control buttons
-      ("Kombi_1", 50),      # From J285 Instrument cluster
-      ("Motor_2", 50),      # From J623 Engine control module
-      ("Motor_5", 50),      # From J623 Engine control module
-      ("Lenkhilfe_2", 20),  # From J500 Steering Assist with integrated sensors
-      ("Gate_Komf_1", 10),  # From J533 CAN gateway
+      ("Bremse_1", 100),
+      ("Bremse_3", 100),
+      ("Lenkhilfe_3", 100),
+      ("Lenkwinkel_1", 100),
+      ("Motor_3", 100),
+      ("Airbag_1", 50),
+      ("Bremse_5", 50),
+      ("GRA_Neu", 50),
+      ("Kombi_1", 50),
+      ("Motor_2", 50),
+      ("Motor_5", 50),
+      ("Lenkhilfe_2", 20),
+      ("Gate_Komf_1", 10),
     ]
 
     if CP.transmissionType == TransmissionType.automatic:
-      pt_messages += [("Getriebe_1", 100)]  # From J743 Auto transmission control module
+      pt_messages += [("Getriebe_1", 100)]
     elif CP.transmissionType == TransmissionType.manual:
-      pt_messages += [("Motor_1", 100)]  # From J623 Engine control module
+      pt_messages += [("Motor_1", 100)]
 
     if CP.networkLocation == NetworkLocation.fwdCamera:
       pt_messages += PqExtraSignals.fwd_radar_messages
@@ -547,7 +550,7 @@ class CarState(CarStateBase):
     cam_messages = []
     if CP.networkLocation == NetworkLocation.fwdCamera:
       cam_messages += [
-        ("LDW_Status", 10),  # From R242 Driver assistance camera
+        ("LDW_Status", 10),
       ]
 
     if CP.networkLocation == NetworkLocation.gateway:
@@ -622,24 +625,22 @@ class CarState(CarStateBase):
       Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], cam_messages, CANBUS.cam),
     }
 
-
 class MqbExtraSignals:
   fwd_radar_messages = [
-    ("ACC_06", 50),                              # From J428 ACC radar control module
-    ("ACC_10", 50),                              # From J428 ACC radar control module
-    ("ACC_02", 17),                              # From J428 ACC radar control module
+    ("ACC_06", 50),
+    ("ACC_10", 50),
+    ("ACC_02", 17),
   ]
   bsm_radar_messages = [
-    ("SWA_01", 20),                              # From J1086 Lane Change Assist
+    ("SWA_01", 20),
   ]
 
 
 class PqExtraSignals:
   fwd_radar_messages = [
-    ("ACC_System", 50),                          # From J428 ACC radar control module
-    ("ACC_GRA_Anzeige", 25),                     # From J428 ACC radar control module
+    ("ACC_System", 50),
+    ("ACC_GRA_Anzeige", 25),
   ]
   bsm_radar_messages = [
-    ("SWA_1", 20),                               # From J1086 Lane Change Assist
+    ("SWA_1", 20),
   ]
-
