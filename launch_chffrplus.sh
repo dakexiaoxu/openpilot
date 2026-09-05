@@ -110,8 +110,11 @@ function agnos_init {
 
   export AGNOS_UPDATE_CONFIRMATION_FILE="${AGNOS_UPDATE_CONFIRMATION_FILE:-/data/agnos-update-confirmed}"
 
-  # Check if AGNOS update is required
-  if [ "$(< /VERSION)" != "$AGNOS_VERSION" ]; then
+  # Check if AGNOS update is required. Skip OTA when the device AGNOS already
+  # matches, or when SKIP_AGNOS_UPDATE=1 (default for installer boots).
+  if [ "${SKIP_AGNOS_UPDATE:-1}" = "1" ]; then
+    echo "Skipping AGNOS OTA (device=$(tr -d '\000\r\n' < /VERSION 2>/dev/null); wanted=$AGNOS_VERSION)."
+  elif [ "$(< /VERSION)" != "$AGNOS_VERSION" ]; then
     AGNOS_PY="$DIR/openpilot/system/hardware/tici/agnos.py"
     MANIFEST="$DIR/openpilot/system/hardware/tici/agnos.json"
     MODEL="$(tr -d '\000\r\n' 2>/dev/null < /sys/firmware/devicetree/base/model | tr '[:upper:]' '[:lower:]')"

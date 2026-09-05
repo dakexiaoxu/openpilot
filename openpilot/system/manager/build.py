@@ -49,6 +49,11 @@ def build_usbgpu_model(spinner: Spinner) -> bool:
   }
   present = usbgpu_present()
   if not present:
+    # C3 without an eGPU: do not block the comma-logo boot for 20s.
+    if os.path.isfile("/TICI") or os.path.isfile("/AGNOS"):
+      write_big_model_status(model_cache_dir(), "waiting_for_ignition",
+                             detail="no USB eGPU on this device", **status_values)
+      return False
     wait_started = time.monotonic()
     write_big_model_status(model_cache_dir(), "waiting_for_ignition",
                            detail="waiting for eGPU USB re-enumeration", **status_values)
