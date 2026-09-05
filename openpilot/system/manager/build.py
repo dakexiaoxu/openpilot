@@ -174,6 +174,9 @@ def build(spinner: Spinner, dirty: bool = False, minimal: bool = False) -> None:
   nproc = os.cpu_count()
   if nproc is None:
     nproc = 2
+  if AGNOS:
+    # Full -j8 OOMs a C3 and freezes on the comma logo with no spinner.
+    nproc = min(2, nproc)
 
   extra_args = ["--minimal"] if minimal else []
 

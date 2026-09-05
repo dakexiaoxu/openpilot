@@ -28,7 +28,10 @@ rm -f \
   "$MODULE"
 
 cd "$ROOT"
-scons -u -j4 openpilot/common/params_pyx.so
+# Do not probe the QCOM GPU while compiling Params. Device.get_available_devices()
+# can hang SCons parse on a C3 with no spinner, which looks like a frozen comma.
+export SKIP_TINYGRAD_PROBE=1
+scons -u -j1 openpilot/common/params_pyx.so
 PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}" python3 -c \
   'from openpilot.common.params import Params; keys = Params().all_keys(); assert b"EnableRadarTracks" in keys and b"CarrotRadarCutInSensitivity" not in keys and b"CarrotRadarMode" not in keys and b"RadarMotionMode" not in keys and b"RadarDPathMode" not in keys and b"RadarLeadModelMode" not in keys'
 printf '%s\n' "$HEADER_HASH" > "$STAMP.tmp"

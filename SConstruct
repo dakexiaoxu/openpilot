@@ -47,7 +47,14 @@ if arch == "larch64":
   # and the libyuv-backed FFmpeg encoder is excluded below on larch64.
   pkg_names = [name for name in pkg_names if name not in ('bzip2', 'libyuv')]
 
-pkgs = [importlib.import_module(name) for name in pkg_names]
+pkgs = []
+for name in pkg_names:
+  try:
+    pkgs.append(importlib.import_module(name))
+  except Exception as e:
+    sys.stderr.write(f"SCons missing Python module '{name}': {e}\n")
+    sys.stderr.write("This AGNOS image does not provide that package. Install the matching wheel or stay on stock AGNOS packages.\n")
+    raise
 
 ffmpeg = pkgs[pkg_names.index('ffmpeg')]
 # Newer comma FFmpeg packages use shared libraries, while older AGNOS/device

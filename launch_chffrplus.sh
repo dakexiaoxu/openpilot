@@ -61,6 +61,28 @@ function ensure_python_package {
   return 0
 }
 
+function ensure_scons_modules {
+  local missing
+  missing="$(python3 - <<'PY' 2>/dev/null || true
+mods = ["capnproto", "eigen", "ffmpeg", "libjpeg", "ncurses", "zeromq", "zstd"]
+missing = []
+for name in mods:
+  try:
+    __import__(name)
+  except Exception as e:
+    missing.append(f"{name} ({e})")
+print("\n".join(missing))
+PY
+)"
+  if [ -n "$missing" ]; then
+    echo "SCons Python modules missing:"
+    printf '%s\n' "$missing"
+    return 1
+  fi
+  echo "SCons Python modules are present."
+  return 0
+}
+
 function bootstrap_runtime_dependencies {
   if ! ensure_python_package serial pyserial 1 || \
      ! ensure_python_package msgpack msgpack 1 || \
@@ -85,6 +107,49 @@ function bootstrap_runtime_dependencies {
   fi
 
   ensure_python_package shapely shapely 0
+
+  if { [ -f /TICI ] || [ -f /AGNOS ]; } && ! ensure_scons_modules; then
+    return 1
+  fi
+}
+
+BOOT_SPINNER_PID=""
+
+function stop_boot_spinner {
+  touch /tmp/boot_spinner.stop 2>/dev/null || true
+  if [ -n "${BOOT_SPINNER_PID:-}" ]; then
+    kill "$BOOT_SPINNER_PID" 2>/dev/null || true
+    wait "$BOOT_SPINNER_PID" 2>/dev/null || true
+    BOOT_SPINNER_PID=""
+  fi
+  pkill -f "scripts/boot_spinner.py" >/dev/null 2>&1 || true
+  pkill -f "openpilot/system/ui/spinner.py" >/dev/null 2>&1 || true
+}
+
+function start_boot_spinner {
+  local message="$1"
+  stop_boot_spinner
+  rm -f /tmp/boot_spinner.stop
+  printf '%s\n' "$message" > /tmp/boot_status_line
+  python3 "$DIR/scripts/boot_spinner.py" >> /tmp/boot_spinner.log 2>&1 &
+  BOOT_SPINNER_PID=$!
+}
+
+function boot_status {
+  local message="$1"
+  printf '%s\n' "$message" | tee -a /tmp/boot_status
+  printf '%s\n' "$message" > /tmp/boot_status_line
+  if [ -z "${BOOT_SPINNER_PID:-}" ] || ! kill -0 "$BOOT_SPINNER_PID" >/dev/null 2>&1; then
+    start_boot_spinner "$message"
+  fi
+}
+
+function boot_fail {
+  local message="$1"
+  stop_boot_spinner
+  printf '%s\n' "$message" | tee -a /tmp/boot_status /tmp/launch_log
+  python3 "$DIR/openpilot/system/ui/text.py" "$message" || true
+  while true; do sleep 1; done
 }
 
 function show_agnos_update_failure {
@@ -368,11 +433,12 @@ function launch {
     echo -n 1 > /data/params/d/SshEnabled
   fi
   start_carrot_recovery
+  boot_status "Starting openpilot. Keep power on."
 
   # hardware specific init
   if [ -f /AGNOS ]; then
     if ! agnos_init; then
-      while true; do sleep 1; done
+      boot_fail "AGNOS init failed."$'\n'$'\n'"Open recovery on port 6999."
     fi
   fi
 
@@ -380,13 +446,13 @@ function launch {
   # imports native dependency modules while building Params, so bootstrap them
   # before the first SCons invocation.
   if ! bootstrap_runtime_dependencies; then
-    while true; do sleep 1; done
+    boot_fail "Python packages failed to install."$'\n'$'\n'"Open recovery on port 6999."$'\n'"Log: /tmp/launch_log"$'\n'"Missing SCons modules: /tmp/launch_log"
   fi
 
   # Build Params before any long-running carrot service imports it.
+  boot_status "Compiling params. Do not unplug."
   if ! bash "$DIR/scripts/ensure_params_build.sh"; then
-    echo "Params registry build failed, not starting openpilot."
-    while true; do sleep 1; done
+    boot_fail "Params compile failed."$'\n'$'\n'"Open recovery on port 6999."$'\n'"Log: /tmp/launch_log"
   fi
 
   start_carrot_web
@@ -404,9 +470,10 @@ function launch {
   # start manager
   cd openpilot/system/manager
   if [ "$FORCE_REBUILD" = "1" ] || [ ! -f $DIR/prebuilt ]; then
+    boot_status "Compiling openpilot. Do not unplug."
+    stop_boot_spinner
     if ! ./build.py; then
-      echo "openpilot build failed, not starting manager."
-      while true; do sleep 1; done
+      boot_fail "openpilot compile failed."$'\n'$'\n'"Open recovery on port 6999."$'\n'"Log: /tmp/launch_log"
     fi
     if [ "$FORCE_REBUILD" = "1" ]; then
       mkdir -p "$DIR/openpilot/selfdrive/modeld/models"
@@ -417,10 +484,10 @@ function launch {
     fi
   fi
   start_big_model_update
+  stop_boot_spinner
   ./manager.py
 
-  # if broken, keep on screen error
-  while true; do sleep 1; done
+  boot_fail "openpilot manager exited."$'\n'$'\n'"Open recovery on port 6999."$'\n'"Log: /tmp/launch_log"
 }
 
 launch
