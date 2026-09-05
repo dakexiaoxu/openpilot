@@ -1,0 +1,19 @@
+* text=auto
+
+# C3 has no git-lfs. Any LFS pointer makes installer hang on "connecting for boot".
+# Keep boot-critical and media files as regular git blobs.
+*.onnx -filter -diff -merge -text
+system/hardware/tici/updater -filter -diff -merge -text
+openpilot/system/hardware/tici/updater -filter -diff -merge -text
+*.svg -filter -diff -merge -text
+*.png -filter -diff -merge -text
+*.gif -filter -diff -merge -text
+*.ttf -filter -diff -merge -text
+*.otf -filter -diff -merge -text
+*.wav -filter -diff -merge -text
+docs/assets/comma-logo.png -filter -diff -merge -text
+openpilot/tools/cabana/assets/cabana-icon.png -filter -diff -merge -text
+openpilot/selfdrive/carrot/web/assets/alert_camera.svg -filter -diff -merge -text
+openpilot/selfdrive/carrot/web/assets/alert_police.svg -filter -diff -merge -text
+openpilot/selfdrive/modeld/models/dmonitoring_model.onnx -filter -diff -merge -text
+openpilot/selfdrive/modeld/models/driving_supercombo.onnx -filter -diff -merge -text
