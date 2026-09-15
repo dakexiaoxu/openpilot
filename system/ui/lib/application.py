@@ -1194,10 +1194,8 @@ class GuiApplication:
     if otf_path.exists() and len(codepoints) > 128:
       try:
         cp_buffer = rl.ffi.new("int[]", codepoints)
-        try:
-          font = rl.load_font_ex(otf_path.as_posix(), 16, cp_buffer, len(codepoints))
-        except TypeError:
-          font = rl.load_font_ex(otf_path.as_posix(), 16, list(codepoints), len(codepoints))
+        cp_ptr = rl.ffi.cast("int *", cp_buffer)
+        font = rl.load_font_ex(otf_path.as_posix(), 16, cp_ptr, len(codepoints))
         glyph_count = int(getattr(font, "glyphCount", 0) or 0)
         if glyph_count >= 200:
           cloudlog.warning(f"Loaded unifont.otf with {glyph_count} glyphs for Chinese UI")
