@@ -121,6 +121,32 @@ function launch {
   export PYTHONPATH="$DIR/starpilot/third_party:$PWD"
   sp_launch_timing "pythonpath_done"
 
+  function start_amap_carrot_bridge {
+    local watchdog_script="$DIR/scripts/amap_carrot_watchdog.sh"
+    local pid_file="${AMAP_CARROT_PID_FILE:-/tmp/amap_carrot_watchdog.pid}"
+    local py_bin
+    [ -f "$watchdog_script" ] || return
+    if command -v pgrep >/dev/null 2>&1 && pgrep -f '[a]map_carrot_watchdog[.]sh' >/dev/null 2>&1; then
+      return
+    fi
+    if [ -f "$pid_file" ]; then
+      local old_pid
+      old_pid="$(cat "$pid_file" 2>/dev/null || true)"
+      if [ -n "$old_pid" ] && kill -0 "$old_pid" >/dev/null 2>&1; then
+        return
+      fi
+    fi
+    py_bin="$(command -v python3 || command -v python || true)"
+    [ -n "$py_bin" ] || return
+    echo "Starting Amap/Carrot navi bridge on 7000 and 7713."
+    if command -v setsid >/dev/null 2>&1; then
+      setsid bash "$watchdog_script" "$DIR" "$py_bin" >> /tmp/amap_carrot_bridge.log 2>&1 &
+    else
+      bash "$watchdog_script" "$DIR" "$py_bin" >> /tmp/amap_carrot_bridge.log 2>&1 &
+    fi
+  }
+  start_amap_carrot_bridge
+
   # hardware specific init
   if [ -f /AGNOS ]; then
     agnos_init
