@@ -11,24 +11,51 @@ jobs:
       contents: write
     steps:
       - name: Checkout patch script
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           sparse-checkout: |
             .github/scripts/patch_starpilot_mk7.py
           sparse-checkout-cone-mode: false
 
-      - name: Clone StarPilot, patch MK7, push branch
+      - name: Clone StarPilot
+        run: |
+          set -euo pipefail
+          export GIT_LFS_SKIP_SMUDGE=1
+          git config --global http.postBuffer 524288000
+          git config --global http.version HTTP/1.1
+          git config --global core.compression 0
+          rm -rf /tmp/starpilot
+          ok=0
+          for i in 1 2 3 4 5; do
+            echo "CLONE_ATTEMPT $i"
+            if git clone --progress --depth 1 --single-branch --branch StarPilot \
+                https://github.com/firestar5683/StarPilot.git /tmp/starpilot; then
+              ok=1
+              break
+            fi
+            echo "CLONE_RETRY $i"
+            rm -rf /tmp/starpilot
+            sleep 8
+          done
+          test "$ok" = "1"
+          test -f /tmp/starpilot/launch_chffrplus.sh
+          echo "CLONE_OK"
+
+      - name: Patch MK7 and push StarPilot branch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          git clone --depth 1 --single-branch --branch StarPilot https://github.com/firestar5683/StarPilot.git /tmp/starpilot
-          python3 "$GITHUB_WORKSPACE/.github/scripts/patch_starpilot_mk7.py" /tmp/starpilot
+          python3 -u "$GITHUB_WORKSPACE/.github/scripts/patch_starpilot_mk7.py" /tmp/starpilot
           cd /tmp/starpilot
           git config user.name "dakexiaoxu"
           git config user.email "xuxiujun2017@gmail.com"
           git add -A
-          git diff --cached --quiet && echo "no patch changes" && exit 1
-          git commit -m "Hardcode MK7 fingerprint, MQB CAN parsers, and persistent ActivateCruiseAfterBrake=1."
+          if git diff --cached --quiet; then
+            echo "PATCH_MADE_NO_CHANGES"
+            exit 1
+          fi
+          git commit -m "Hardcode MK7 fingerprint, skip AGNOS updater, MQB CAN parsers, and ACB."
           git remote add dakexiaoxu "https://x-access-token:${GH_TOKEN}@github.com/dakexiaoxu/openpilot.git"
-          git push -u dakexiaoxu HEAD:StarPilot
+          git -c http.postBuffer=524288000 push --force -u dakexiaoxu HEAD:StarPilot
+          echo "PUSH_OK"

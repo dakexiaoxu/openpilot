@@ -28,6 +28,49 @@ if "VOLKSWAGEN_JETTA_MK7" not in t:
 else:
   print("launch_chffrplus.sh already has MK7 fingerprint")
 
+# --- skip AGNOS flash (carrot 19.6.3 hangs on updater / comma logo) ---
+p, t = must_read("launch_chffrplus.sh")
+old_agnos = '''  # Check if AGNOS update is required
+  AGNOS_CURRENT_VERSION="$(< /VERSION)"
+  AGNOS_UPDATE_REQUIRED=1
+  for accepted_version in $AGNOS_ACCEPTED_VERSIONS; do
+    if [ "$AGNOS_CURRENT_VERSION" = "$accepted_version" ]; then
+      AGNOS_UPDATE_REQUIRED=0
+      break
+    fi
+  done
+
+  if [ "$AGNOS_UPDATE_REQUIRED" = "1" ]; then
+    AGNOS_PY="$DIR/system/hardware/tici/agnos.py"
+    MANIFEST="$DIR/system/hardware/tici/agnos.json"
+    if $AGNOS_PY --verify $MANIFEST; then
+      sudo reboot
+    fi
+    $DIR/system/hardware/tici/updater $AGNOS_PY $MANIFEST
+  fi
+'''
+new_agnos = '''  # Never flash AGNOS from this tree. Carrot 19.6.3 hanging on updater looks like a frozen comma logo.
+  AGNOS_CURRENT_VERSION="$(< /VERSION)"
+  AGNOS_UPDATE_REQUIRED=0
+  sp_boot_timing_line "skip_agnos_update current=${AGNOS_CURRENT_VERSION}"
+'''
+if "skip_agnos_update" not in t:
+  if old_agnos not in t:
+    raise SystemExit("launch_chffrplus.sh: AGNOS updater block not found")
+  t = t.replace(old_agnos, new_agnos, 1)
+  p.write_text(t, encoding="utf-8")
+  print("patched launch_chffrplus.sh AGNOS skip")
+
+p, t = must_read("launch_env.sh")
+if "19.6.3-carrot" not in t:
+  t = t.replace(
+    'export AGNOS_ACCEPTED_VERSIONS="$AGNOS_VERSION"',
+    'export AGNOS_ACCEPTED_VERSIONS="$AGNOS_VERSION 19.6.3-carrot"',
+    1,
+  )
+  p.write_text(t, encoding="utf-8")
+  print("patched launch_env.sh accepted AGNOS")
+
 # --- params ---
 p, t = must_read("common/params_keys.h")
 t = t.replace(
