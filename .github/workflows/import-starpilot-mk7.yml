@@ -1,0 +1,34 @@
+name: Import StarPilot MK7
+
+on:
+  workflow_dispatch:
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout patch script
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/scripts/patch_starpilot_mk7.py
+          sparse-checkout-cone-mode: false
+
+      - name: Clone StarPilot, patch MK7, push branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --single-branch --branch StarPilot https://github.com/firestar5683/StarPilot.git /tmp/starpilot
+          python3 "$GITHUB_WORKSPACE/.github/scripts/patch_starpilot_mk7.py" /tmp/starpilot
+          cd /tmp/starpilot
+          git config user.name "dakexiaoxu"
+          git config user.email "xuxiujun2017@gmail.com"
+          git add -A
+          git diff --cached --quiet && echo "no patch changes" && exit 1
+          git commit -m "Hardcode MK7 fingerprint, MQB CAN parsers, and persistent ActivateCruiseAfterBrake=1."
+          git remote add dakexiaoxu "https://x-access-token:${GH_TOKEN}@github.com/dakexiaoxu/openpilot.git"
+          git push -u dakexiaoxu HEAD:StarPilot
