@@ -119,6 +119,7 @@ from openpilot.starpilot.system.the_galaxy.longitudinal_mode import (
   MODE_KEYS as LONGITUDINAL_MODE_KEYS, ModeError, WRITE_LOCK as LONGITUDINAL_MODE_LOCK,
   set_mode as set_longitudinal_mode, snapshot as longitudinal_mode_snapshot,
 )
+from openpilot.starpilot.common.settings_zh_chs import ZH_CHS, language_wants_chinese, translate_catalog
 from openpilot.starpilot.common.favorite_slots import (
   FAVORITE_SLOTS_PARAM,
   SETTINGS_CATALOG_PATH,
@@ -5645,9 +5646,21 @@ def setup(app):
 
   @app.route("/assets/components/tools/device_settings_layout.json", methods=["GET"])
   def device_settings_layout_asset():
-    if not SETTINGS_CATALOG_PATH.is_file():
+    layout_data = load_settings_catalog()
+    if layout_data is None:
       return "Settings catalog not found", 404
-    return send_file(str(SETTINGS_CATALOG_PATH), mimetype="application/json")
+    lang = request.args.get("lang") or params.get("LanguageSetting") or ""
+    if language_wants_chinese(lang):
+      layout_data = translate_catalog(layout_data)
+    response = jsonify(layout_data)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+  @app.route("/assets/components/tools/settings_zh-CHS.json", methods=["GET"])
+  def settings_zh_chs_asset():
+    response = jsonify(ZH_CHS)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
   @app.route("/assets/mobile/manifest.json", methods=["GET"])
   def mobile_manifest():

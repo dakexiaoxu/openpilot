@@ -1,6 +1,7 @@
 import { api, showSnackbar } from "../api.js"
 import { usePolling } from "../composables.js"
 import { GalaxyConfirm } from "../components/GalaxyModal.js"
+import { t } from "../i18n.js"
 
 const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
 const toInt = (v) => Math.round(toNum(v)).toLocaleString("en-US", { maximumFractionDigits: 0 })
@@ -27,7 +28,7 @@ const timeShort = (d) => d.toLocaleTimeString("en-US", { hour: "numeric", minute
 const dateTimeShort = (d) => d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
 
 function fmtDriveRange(startValue, endValue) {
-  if (!startValue) return "No drives yet"
+  if (!startValue) return t("No drives yet")
   const start = new Date(startValue)
   if (Number.isNaN(start.getTime())) return String(startValue)
   const end = new Date(endValue)
@@ -44,7 +45,7 @@ const driveSpeedUnit = (drive, unit) => drive?.speedUnit || (unit === "kilometer
 
 const FAVORITE_COLORS = ["#5ec8c8", "#8b6cc5", "#d4a060", "#e05577", "#6cc56e", "#8aa3ff"]
 const TOP_MODEL_LIMIT = 3
-const WEEK_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+const WEEK_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label) => t(label))
 
 function hasPendingWork(dashboard) {
   const analysis = dashboard?.analysis || {}
@@ -56,7 +57,7 @@ function hasPendingWork(dashboard) {
 const emptyStats = () => ({ drives: 0, distance: 0, hours: 0 })
 const emptyDrive = () => ({
   date: "", endDate: "", distance: 0, distanceUnit: "", duration: 0,
-  avgSpeed: 0, speedUnit: "", engagedPercent: 0, model: "Unknown model",
+  avgSpeed: 0, speedUnit: "", engagedPercent: 0, model: t("Unknown model"),
   distractedMoments: 0, unresponsiveMoments: 0, ignored: false, attentionKnown: true,
 })
 
@@ -85,7 +86,7 @@ export const Home = {
       const online = device.online !== false
       return {
         status: device.status || "Parked",
-        text: `${device.status || "Parked"} - ${online ? "device online" : "device offline"}`,
+        text: `${t(device.status || "Parked")} - ${online ? t("device online") : t("device offline")}`,
         online,
       }
     },
@@ -100,7 +101,7 @@ export const Home = {
       const label = analysis.running
         ? `Analyzing ${shown} ${shown === 1 ? "drive" : "drives"}`
         : `${count} ${count === 1 ? "drive" : "drives"} queued`
-      return { label }
+      return { label: t(label, label) }
     },
 
     lastDrive() {
@@ -110,19 +111,19 @@ export const Home = {
       return {
         ready,
         range: fmtDriveRange(drive.date, drive.endDate),
-        model: drive.model || "Unknown model",
+        model: drive.model || t("Unknown model"),
         metrics: [
-          { value: ready ? toDec(drive.distance) : "...", label: ready ? unit : "analyzing" },
-          { value: fmtDuration(drive.duration), label: "duration" },
-          { value: ready ? toInt(drive.avgSpeed) : "...", label: ready ? `${driveSpeedUnit(drive, unit)} avg` : "speed" },
-          { value: ready ? pct(drive.engagedPercent) : "...", label: "engaged" },
+          { value: ready ? toDec(drive.distance) : "...", label: ready ? t(unit, unit) : t("analyzing") },
+          { value: fmtDuration(drive.duration), label: t("duration") },
+          { value: ready ? toInt(drive.avgSpeed) : "...", label: ready ? t(`${driveSpeedUnit(drive, unit)} avg`) : t("speed") },
+          { value: ready ? pct(drive.engagedPercent) : "...", label: t("engaged") },
         ],
         footer: ready
           ? [
-              { icon: "bi-eye", text: `${toInt(drive.distractedMoments)} distracted` },
-              { icon: "bi-exclamation-triangle", text: `${toInt(drive.unresponsiveMoments)} unresponsive` },
+              { icon: "bi-eye", text: `${toInt(drive.distractedMoments)} ${t("distracted")}` },
+              { icon: "bi-exclamation-triangle", text: `${toInt(drive.unresponsiveMoments)} ${t("unresponsive")}` },
             ]
-          : [{ icon: "bi-hourglass-split", text: "Analyzing stats" }],
+          : [{ icon: "bi-hourglass-split", text: t("Analyzing stats") }],
       }
     },
 
@@ -131,17 +132,17 @@ export const Home = {
       const week = { ...emptyStats(), ...(this.driveStats.week || {}) }
       const starpilot = { ...emptyStats(), ...(this.driveStats.starpilot || {}) }
       const groups = [
-        { title: "All time", ...all },
-        { title: "Past week", ...week },
+        { title: t("All time"), ...all },
+        { title: t("Past week"), ...week },
         { title: "StarPilot", ...starpilot },
       ]
       return groups.map((g) => ({
         title: g.title,
         unit: g.unit || this.unit,
         metrics: [
-          { value: toInt(g.drives), label: "drives" },
-          { value: toDec(g.distance), label: g.unit || this.unit },
-          { value: toDec(g.hours), label: "hours" },
+          { value: toInt(g.drives), label: t("drives") },
+          { value: toDec(g.distance), label: t(g.unit || this.unit, g.unit || this.unit) },
+          { value: toDec(g.hours), label: t("hours") },
         ],
       }))
     },
@@ -156,12 +157,12 @@ export const Home = {
         engagedValue: clamp(this.week.engagedPercent),
         unit: this.week.distanceUnit || this.unit,
         metrics: [
-          { value: toDec(this.week.distance), label: this.week.distanceUnit || this.unit },
-          { value: toDec(this.week.hours), label: "hours" },
-          { value: toInt(this.week.drives), label: "drives" },
+          { value: toDec(this.week.distance), label: t(this.week.distanceUnit || this.unit, this.week.distanceUnit || this.unit) },
+          { value: toDec(this.week.hours), label: t("hours") },
+          { value: toInt(this.week.drives), label: t("drives") },
         ],
         days: days.map((d) => ({
-          label: d.label,
+          label: t(d.label, d.label),
           distance: toDec(d.distance),
           height: Math.max(4, (toNum(d.distance) / maxDistance) * 100),
         })),
@@ -175,12 +176,12 @@ export const Home = {
       })
       const records = this.dash.records || {}
       return [
-        { icon: "bi-arrow-right", title: "Longest drive", ...r(records.longestDrive) },
-        { icon: "bi-check2-circle", title: "Most-engaged day", ...r(records.mostEngagedDay) },
-        { icon: "bi-graph-up-arrow", title: "Best week", ...r(records.bestWeek) },
-        { icon: "bi-lightning-charge", title: "Highest streak", ...r(records.highestStreak) },
-        { icon: "bi-shield-check", title: "Longest undistracted drive", ...r(records.longestUndistractedDrive) },
-        { icon: "bi-stars", title: "Clean-drive streak", ...r(records.cleanDriveStreak) },
+        { icon: "bi-arrow-right", title: t("Longest drive"), ...r(records.longestDrive) },
+        { icon: "bi-check2-circle", title: t("Most-engaged day"), ...r(records.mostEngagedDay) },
+        { icon: "bi-graph-up-arrow", title: t("Best week"), ...r(records.bestWeek) },
+        { icon: "bi-lightning-charge", title: t("Highest streak"), ...r(records.highestStreak) },
+        { icon: "bi-shield-check", title: t("Longest undistracted drive"), ...r(records.longestUndistractedDrive) },
+        { icon: "bi-stars", title: t("Clean-drive streak"), ...r(records.cleanDriveStreak) },
       ]
     },
 
@@ -193,30 +194,30 @@ export const Home = {
         const routeNames = Array.isArray(drive?.routeNames) ? drive.routeNames.filter(Boolean) : []
         const pending = !ready && !ignored
         let distance = ""
-        if (ignored) distance = "Stats excluded"
-        else if (pending) distance = "Analyzing stats"
-        else distance = `${toDec(drive.distance)} ${unit}`
+        if (ignored) distance = t("Stats excluded")
+        else if (pending) distance = t("Analyzing stats")
+        else distance = `${toDec(drive.distance)} ${t(unit, unit)}`
 
         let engaged = ""
         let attentionItems = []
         if (ignored) {
-          engaged = "Excluded"
-          attentionItems = [{ icon: "bi-eye-slash", text: "Ignored from stats" }]
+          engaged = t("Excluded")
+          attentionItems = [{ icon: "bi-eye-slash", text: t("Ignored from stats") }]
         } else if (pending) {
-          engaged = "Pending"
-          attentionItems = [{ icon: "bi-hourglass-split", text: "Waiting for full route analysis" }]
+          engaged = t("Pending")
+          attentionItems = [{ icon: "bi-hourglass-split", text: t("Waiting for full route analysis") }]
         } else {
-          engaged = `${pct(drive.engagedPercent)} engaged`
+          engaged = `${pct(drive.engagedPercent)} ${t("engaged")}`
           attentionItems = [
-            { icon: "bi-eye", text: `${toInt(drive.distractedMoments)} distracted` },
-            { icon: "bi-exclamation-triangle", text: `${toInt(drive.unresponsiveMoments)} unresponsive` },
+            { icon: "bi-eye", text: `${toInt(drive.distractedMoments)} ${t("distracted")}` },
+            { icon: "bi-exclamation-triangle", text: `${toInt(drive.unresponsiveMoments)} ${t("unresponsive")}` },
           ]
         }
 
         return {
           key: drive.name || `${drive.date || ""}-${index}`,
           range: fmtDriveRange(drive.date, drive.endDate),
-          model: drive.model || "Unknown model",
+          model: drive.model || t("Unknown model"),
           ignored,
           pending,
           routeNames,
@@ -228,7 +229,7 @@ export const Home = {
           canToggle: routeNames.length > 0,
           action: ignored ? "include" : "ignore",
           actionIcon: ignored ? "bi-arrow-counterclockwise" : "bi-eye-slash",
-          actionLabel: ignored ? "Include drive stats" : "Ignore drive stats",
+          actionLabel: ignored ? t("Include drive stats") : t("Ignore drive stats"),
           toggleKey: routeNames.join(","),
         }
       })
@@ -251,7 +252,7 @@ export const Home = {
       const rows = top.map((m, i) => ({
         color: FAVORITE_COLORS[i],
         name: m.name,
-        label: `${toInt(m.drives)} ${toNum(m.drives) === 1 ? "drive" : "drives"} using this model`,
+        label: `${toInt(m.drives)} ${t("drives")} ${t("using this model")}`,
       }))
       return { hasModels: true, style: `conic-gradient(${segments.join(", ")})`, rows }
     },
@@ -259,15 +260,15 @@ export const Home = {
     storageView() {
       const counts = this.storage.segmentCounts || {}
       const summary = this.storage.legacyText
-        || `${fmtBytes(this.storage.usedBytes)} used of ${fmtBytes(this.storage.totalBytes)}`
+        || `${fmtBytes(this.storage.usedBytes)} ${t("used of")} ${fmtBytes(this.storage.totalBytes)}`
       return {
         summary,
         usedPercent: clamp(this.storage.usedPercent),
         rows: [
-          { label: "Dashcam footage", value: `${toInt(counts.standard)} segments` },
-          { label: "High-resolution footage", value: `${toInt(counts.highResolution)} segments` },
-          { label: "Konik footage", value: `${toInt(counts.alternate)} segments` },
-          { label: "Free space", value: fmtBytes(this.storage.freeBytes) },
+          { label: t("Dashcam footage"), value: `${toInt(counts.standard)} ${t("segments")}` },
+          { label: t("High-resolution footage"), value: `${toInt(counts.highResolution)} ${t("segments")}` },
+          { label: t("Konik footage"), value: `${toInt(counts.alternate)} ${t("segments")}` },
+          { label: t("Free space"), value: fmtBytes(this.storage.freeBytes) },
         ],
       }
     },
@@ -275,12 +276,12 @@ export const Home = {
     vitalsList() {
       const device = this.device
       return [
-        { label: "Status", value: device.status || "Parked" },
-        { label: "LAN IP", value: device.lanIp || "unknown" },
-        { label: "Network", value: device.networkName || "No wireless connectivity" },
-        { label: "Uptime", value: device.uptimeSeconds == null ? "unknown" : fmtDuration(device.uptimeSeconds) },
-        { label: "CPU temp", value: device.cpuTempC == null ? "unknown" : `${toInt(device.cpuTempC)} C` },
-        { label: "GPU temp", value: device.gpuTempC == null ? "unknown" : `${toInt(device.gpuTempC)} C` },
+        { label: t("Status"), value: t(device.status || "Parked") },
+        { label: t("LAN IP"), value: device.lanIp || t("unknown") },
+        { label: t("Network"), value: t(device.networkName || "No wireless connectivity", device.networkName || "No wireless connectivity") },
+        { label: t("Uptime"), value: device.uptimeSeconds == null ? t("unknown") : fmtDuration(device.uptimeSeconds) },
+        { label: t("CPU temp"), value: device.cpuTempC == null ? t("unknown") : `${toInt(device.cpuTempC)} C` },
+        { label: t("GPU temp"), value: device.gpuTempC == null ? t("unknown") : `${toInt(device.gpuTempC)} C` },
       ]
     },
 
@@ -289,16 +290,17 @@ export const Home = {
       const safeGithub = (v) => (String(v || "").trim().startsWith("https://github.com/") ? String(v).trim() : "")
       const commitHref = safeGithub(info.changelogUrl) || safeGithub(info.commitUrl)
       return [
-        { label: "Branch", value: info.branchName, href: "" },
-        { label: "Build", value: info.buildEnvironment, href: "" },
-        { label: "Commit", value: info.commitHash, href: commitHref },
-        { label: "Version date", value: info.versionDate, href: "" },
-        { label: "Fork maintainer", value: info.forkMaintainer, href: "" },
-        { label: "Update available", value: info.updateAvailable, href: "" },
+        { label: t("Branch"), value: info.branchName, href: "" },
+        { label: t("Build"), value: info.buildEnvironment, href: "" },
+        { label: t("Commit"), value: info.commitHash, href: commitHref },
+        { label: t("Version date"), value: info.versionDate, href: "" },
+        { label: t("Fork maintainer"), value: info.forkMaintainer, href: "" },
+        { label: t("Update available"), value: info.updateAvailable, href: "" },
       ]
     },
   },
   methods: {
+    tr(key, fallback = key) { return t(key, fallback) },
     isToggling(routeNames) {
       return this.togglingKey === (routeNames || []).join(",")
     },
@@ -329,7 +331,7 @@ export const Home = {
         this.keepRefreshing = hasPendingWork(data?.dashboard || {})
       } catch (err) {
         if (this.payload) {
-          showSnackbar("Couldn't refresh dashboard.", "error")
+          showSnackbar(t("Couldn't refresh dashboard."), "error")
         } else {
           this.status = "error"
           this.error = err?.message || String(err)
@@ -342,9 +344,9 @@ export const Home = {
     async toggleDriveStats(drive) {
       if (drive.action === "ignore") {
         const ok = await GalaxyConfirm({
-          title: "Ignore this drive's statistics?",
-          message: "It will no longer affect local weekly totals, records, model usage, engagement, or attention streaks.",
-          confirmLabel: "Ignore",
+          title: t("Ignore this drive's statistics?"),
+          message: t("It will no longer affect local weekly totals, records, model usage, engagement, or attention streaks."),
+          confirmLabel: t("Ignore"),
         })
         if (!ok) return
       }
@@ -368,7 +370,7 @@ export const Home = {
   template: `
     <div class="dh-view">
       <template v-if="status === 'loading'">
-        <div class="gx-loading">Loading dashboard...</div>
+        <div class="gx-loading">{{ tr("Loading dashboard...") }}</div>
       </template>
 
       <template v-else-if="status === 'error'">
@@ -376,12 +378,12 @@ export const Home = {
           <div class="gx-alert gx-alert--warn" style="border:none; margin:0;">
             <i class="bi bi-exclamation-triangle-fill gx-alert__icon"></i>
             <div class="gx-alert__body">
-              <strong>Failed to load dashboard</strong>
+              <strong>{{ tr("Failed to load dashboard") }}</strong>
               <span>{{ error }}</span>
             </div>
           </div>
           <div style="padding: var(--sp-4);">
-            <button type="button" class="gx-btn gx-btn--tonal" @click="refresh"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+            <button type="button" class="gx-btn gx-btn--tonal" @click="refresh"><i class="bi bi-arrow-clockwise"></i> {{ tr("Refresh") }}</button>
           </div>
         </section>
       </template>
@@ -389,14 +391,14 @@ export const Home = {
       <template v-else>
         <div class="dh-hero">
           <div class="dh-hero__info">
-            <h1 class="dh-title">Dashboard</h1>
+            <h1 class="dh-title">{{ tr("Dashboard") }}</h1>
             <p class="dh-sub">
               <span class="gx-status-dot" :class="hero.online ? 'online' : 'offline'"></span>
               {{ hero.text }}
             </p>
           </div>
           <button type="button" class="gx-btn gx-btn--tonal dh-refresh" :disabled="status === 'loading'" @click="refresh">
-            <i class="bi bi-arrow-clockwise"></i> Refresh
+            <i class="bi bi-arrow-clockwise"></i> {{ tr("Refresh") }}
           </button>
         </div>
 
@@ -406,7 +408,7 @@ export const Home = {
         </div>
 
         <section class="gx-card dh-card">
-          <div class="dh-card__head"><i class="bi bi-controller"></i><span>Last drive</span></div>
+          <div class="dh-card__head"><i class="bi bi-controller"></i><span>{{ tr("Last drive") }}</span></div>
           <div class="dh-body">
             <div class="dh-date">{{ lastDrive.range }}</div>
             <div class="dh-metrics">
@@ -420,12 +422,12 @@ export const Home = {
                 <span class="dh-tag"><i :class="'bi ' + lastDrive.footer[0].icon"></i>{{ lastDrive.footer[0].text }}</span>
                 <span class="dh-tag"><i :class="'bi ' + lastDrive.footer[1].icon"></i>{{ lastDrive.footer[1].text }}</span>
               </template>
-              <span v-else class="dh-tag"><i class="bi bi-hourglass-split"></i>Analyzing stats</span>
+              <span v-else class="dh-tag"><i class="bi bi-hourglass-split"></i>{{ tr("Analyzing stats") }}</span>
             </div>
           </div>
         </section>
 
-        <div class="dh-label">Your driving</div>
+        <div class="dh-label">{{ tr("Your driving") }}</div>
         <div class="dh-grid">
           <section v-for="stat in statList" :key="stat.title" class="gx-card dh-card dh-stat">
             <div class="dh-card__head"><span>{{ stat.title }}</span></div>
@@ -439,11 +441,11 @@ export const Home = {
 
         <div class="dh-grid dh-grid--2">
           <section class="gx-card dh-card">
-            <div class="dh-card__head"><i class="bi bi-calendar-week"></i><span>This week</span></div>
+            <div class="dh-card__head"><i class="bi bi-calendar-week"></i><span>{{ tr("This week") }}</span></div>
             <div class="dh-body">
               <div class="dh-week-top">
                 <div class="dh-donut" :style="{ '--dh-value': weekView.engagedValue }">
-                  <strong>{{ weekView.engaged }}</strong><span>engaged</span>
+                  <strong>{{ weekView.engaged }}</strong><span>{{ tr("engaged") }}</span>
                 </div>
                 <div class="dh-metrics dh-metrics--3">
                   <div v-for="m in weekView.metrics" :key="m.label" class="dh-metric">
@@ -461,7 +463,7 @@ export const Home = {
           </section>
 
           <section class="gx-card dh-card">
-            <div class="dh-card__head"><i class="bi bi-trophy"></i><span>Personal records</span></div>
+            <div class="dh-card__head"><i class="bi bi-trophy"></i><span>{{ tr("Personal records") }}</span></div>
             <div class="dh-list">
               <div v-for="rec in recordsList" :key="rec.title" class="dh-record">
                 <span class="dh-record__icon"><i :class="'bi ' + rec.icon"></i></span>
@@ -476,9 +478,9 @@ export const Home = {
         </div>
 
         <section class="gx-card dh-card">
-          <div class="dh-card__head"><i class="bi bi-clock-history"></i><span>Recent drives</span></div>
+          <div class="dh-card__head"><i class="bi bi-clock-history"></i><span>{{ tr("Recent drives") }}</span></div>
           <template v-if="!recentList.length">
-            <div class="gx-empty">No local drives found yet.</div>
+            <div class="gx-empty">{{ tr("No local drives found yet.") }}</div>
           </template>
           <div v-else class="dh-list">
             <article v-for="drive in recentList" :key="drive.key" class="dh-drive" :class="{ 'is-pending': drive.pending, 'is-ignored': drive.ignored }">
@@ -508,7 +510,7 @@ export const Home = {
 
         <div class="dh-grid dh-grid--2">
           <section class="gx-card dh-card">
-            <div class="dh-card__head"><i class="bi bi-stars"></i><span>Most used models</span></div>
+            <div class="dh-card__head"><i class="bi bi-stars"></i><span>{{ tr("Most used models") }}</span></div>
             <div v-if="modelView.hasModels" class="dh-body dh-models">
               <div class="dh-chart-ring" :style="{ backgroundImage: modelView.style }" role="img" aria-label="Model usage share"></div>
               <div class="dh-models__list">
@@ -521,11 +523,11 @@ export const Home = {
                 </div>
               </div>
             </div>
-            <div v-else class="gx-empty">No model usage recorded yet.</div>
+            <div v-else class="gx-empty">{{ tr("No model usage recorded yet.") }}</div>
           </section>
 
           <section class="gx-card dh-card">
-            <div class="dh-card__head"><i class="bi bi-box"></i><span>Storage</span></div>
+            <div class="dh-card__head"><i class="bi bi-box"></i><span>{{ tr("Storage") }}</span></div>
             <div class="dh-list">
               <div class="gx-row dh-row--stack" style="cursor:default;">
                 <p class="dh-muted" style="margin:0;">{{ storageView.summary }}</p>
@@ -539,10 +541,10 @@ export const Home = {
           </section>
         </div>
 
-        <div class="dh-label">Your device</div>
+        <div class="dh-label">{{ tr("Your device") }}</div>
         <div class="dh-grid dh-grid--2">
           <section class="gx-card dh-card">
-            <div class="dh-card__head"><i class="bi bi-cpu"></i><span>Vitals</span></div>
+            <div class="dh-card__head"><i class="bi bi-cpu"></i><span>{{ tr("Vitals") }}</span></div>
             <div class="dh-list">
               <div v-for="v in vitalsList" :key="v.label" class="gx-row">
                 <span class="gx-row__label">{{ v.label }}</span>
@@ -552,7 +554,7 @@ export const Home = {
           </section>
 
           <section class="gx-card dh-card">
-            <div class="dh-card__head"><i class="bi bi-star"></i><span>Software</span></div>
+            <div class="dh-card__head"><i class="bi bi-star"></i><span>{{ tr("Software") }}</span></div>
             <div class="dh-list">
               <div v-for="row in softwareList" :key="row.label" class="gx-row">
                 <span class="gx-row__label">{{ row.label }}</span>

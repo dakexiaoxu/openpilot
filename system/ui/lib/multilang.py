@@ -169,6 +169,12 @@ class Multilang:
       po_path = TRANSLATIONS_DIR.joinpath(f'app_{self._language}.po')
       self._translations, self._plurals = load_translations(po_path)
       self._plural_selector = PLURAL_SELECTORS.get(self._language, lambda n: 0)
+      if self._language.startswith("zh"):
+        try:
+          from openpilot.starpilot.common.settings_zh_chs import ZH_CHS
+          self._translations.update(ZH_CHS)
+        except Exception:
+          cloudlog.exception("Failed to load StarPilot Chinese settings translations")
       cloudlog.debug(f"Loaded translations for language: {self._language}")
     except FileNotFoundError:
       cloudlog.error(f"No translation file found for language: {self._language}, using default.")

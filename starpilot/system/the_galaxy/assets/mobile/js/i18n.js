@@ -220,7 +220,7 @@ function translateText(value) {
 }
 
 function storageValue() {
-  try { return window.localStorage.getItem(STORAGE_KEY) || "en" } catch (e) { return "en" }
+  try { return window.localStorage.getItem(STORAGE_KEY) || "zh-CHS" } catch (e) { return "zh-CHS" }
 }
 
 export function normalizeLanguage(value) {
@@ -318,4 +318,16 @@ export function t(key, fallback = key) {
   return translated !== source ? translated : fallback || source
 }
 
+export function loadCatalogTranslations() {
+  return fetch("/assets/components/tools/settings_zh-CHS.json?v=zh-2", { cache: "no-store" })
+    .then((res) => (res.ok ? res.json() : {}))
+    .then((map) => {
+      if (map && typeof map === "object") Object.assign(TRANSLATIONS["zh-CHS"], map)
+      if (languageState.code === "zh-CHS") translateDom()
+      return map
+    })
+    .catch(() => ({}))
+}
+
 setLanguage(languageState.code)
+loadCatalogTranslations()

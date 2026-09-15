@@ -22,7 +22,7 @@ import { ModelLaboratory } from "./views/ModelLaboratory.js"
 import { Cameras } from "./views/Cameras.js"
 import { store, initRouter, navigate } from "./store.js"
 import { showSnackbar } from "./api.js"
-import { installDomTranslator } from "./i18n.js"
+import { installDomTranslator, loadCatalogTranslations } from "./i18n.js"
 
 window.__galaxyVue = { createApp, h }
 
@@ -89,6 +89,7 @@ const app = createApp({
 
 app.mount("#galaxy-app")
 installDomTranslator(document.getElementById("galaxy-app"))
+loadCatalogTranslations()
 
 initRouter()
 

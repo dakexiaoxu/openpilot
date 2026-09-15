@@ -88,8 +88,8 @@ def test_ui_uses_same_backend_endpoints():
   api = _read("js/api.js")
 
   # Settings fetches the exact same layout JSON + params API the original UI used.
-  assert '/assets/components/tools/device_settings_layout.json?v=settings-tier-1' in settings or \
-    '/assets/components/tools/device_settings_layout.json?v=settings-tier-1' in api
+  assert '/assets/components/tools/device_settings_layout.json?v=settings-zh-2' in settings or \
+    '/assets/components/tools/device_settings_layout.json?v=settings-zh-2' in api
   assert '"/api/params/all"' in api
   assert '"/api/params"' in api
   assert '"/api/params/defaults"' in api
