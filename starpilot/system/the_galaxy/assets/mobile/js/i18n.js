@@ -249,6 +249,15 @@ const MORE_TRANSLATIONS = {
     Braking: "制动",
     Following: "跟车",
     "Traffic Mode": "拥堵模式",
+    "Enable to configure profiles. Existing defaults remain active while off.": "开启后可配置风格。关闭时仍使用现有默认值。",
+    "Using existing Dom default.": "正在使用现有 Dom 默认值。",
+    "Custom values are untested and may not be supported by the developer.": "自定义数值未经充分测试，开发者可能不支持。",
+    "Turn on to configure this profile.": "打开后可配置此风格。",
+    "Retry loading": "重新加载",
+    "Driving personalities saved.": "驾驶风格已保存。",
+    "Stored profiles need migration before editing.": "已保存的风格需要先迁移才能编辑。",
+    "Migrate profiles": "迁移风格配置",
+    "Loading profiles…": "正在加载风格配置…",
   },
 }
 
