@@ -63,6 +63,19 @@ def reload_map() -> dict[str, str]:
 ZH_CHS = _load_map()
 
 
+def section_slug(name: str) -> str:
+  return re.sub(r"[^a-z0-9]+", "-", str(name or "").lower()).strip("-")
+
+
+def attach_section_slugs(layout: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
+  if not isinstance(layout, list):
+    return layout
+  for section in layout:
+    if isinstance(section, dict) and not section.get("slug"):
+      section["slug"] = section_slug(section.get("name") or "")
+  return layout
+
+
 def _pattern_translate(text: str) -> str | None:
   try:
     return _pattern_translate_inner(text)

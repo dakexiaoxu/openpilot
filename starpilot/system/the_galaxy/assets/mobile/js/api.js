@@ -1,6 +1,6 @@
 import { languageState, translateCatalog, whenCatalogReady } from "./i18n.js"
 
-export const LAYOUT_URL = "/assets/components/tools/device_settings_layout.json?v=settings-zh-5"
+export const LAYOUT_URL = "/assets/components/tools/device_settings_layout.json?v=settings-zh-6"
 
 function layoutUrl() {
   const lang = languageState?.code || "zh-CHS"

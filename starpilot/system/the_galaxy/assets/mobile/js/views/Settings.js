@@ -42,11 +42,11 @@ export const Settings = {
     route() { return store.route },
     sections() {
       return this.layout
-        .filter((s) => s.name !== "Model & Customization")
+        .filter((s) => s.name !== "Model & Customization" && s.slug !== "model-customization")
         .map((s) => ({
           ...s,
           params: (s.params || []).filter((p) => !LEGACY_PERSONALITY_KEYS.has(p.key) && isSettingVisible(s, p, this.values)),
-          slug: slugifySectionName(s.name),
+          slug: s.slug || slugifySectionName(s.name),
         }))
         .filter((s) => s.params.length > 0)
     },
