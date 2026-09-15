@@ -1186,11 +1186,35 @@ class GuiApplication:
   def height(self):
     return self._height
 
+  def _load_unifont(self, font_dir: Path) -> rl.Font:
+    """The committed unifont.fnt atlas is ASCII-only. Load unifont.otf with CJK glyphs at runtime."""
+    otf_path = font_dir / "unifont.otf"
+    fnt_path = font_dir / FontWeight.UNIFONT
+    codepoints = multilang.font_codepoints()
+    if otf_path.exists() and len(codepoints) > 128:
+      try:
+        cp_buffer = rl.ffi.new("int[]", codepoints)
+        try:
+          font = rl.load_font_ex(otf_path.as_posix(), 16, cp_buffer, len(codepoints))
+        except TypeError:
+          font = rl.load_font_ex(otf_path.as_posix(), 16, list(codepoints), len(codepoints))
+        glyph_count = int(getattr(font, "glyphCount", 0) or 0)
+        if glyph_count >= 200:
+          cloudlog.warning(f"Loaded unifont.otf with {glyph_count} glyphs for Chinese UI")
+          return font
+        cloudlog.error(f"unifont.otf only produced {glyph_count} glyphs; using bitmap atlas")
+        rl.unload_font(font)
+      except Exception:
+        cloudlog.exception("Failed loading unifont.otf; using bitmap atlas")
+    return rl.load_font(fnt_path.as_posix())
+
   def _load_fonts(self):
     for font_weight_file in FontWeight:
       with as_file(FONT_DIR) as fspath:
-        fnt_path = fspath / font_weight_file
-        font = rl.load_font(fnt_path.as_posix())
+        if font_weight_file == FontWeight.UNIFONT:
+          font = self._load_unifont(Path(fspath))
+        else:
+          font = rl.load_font((fspath / font_weight_file).as_posix())
         if font_weight_file != FontWeight.UNIFONT:
           rl.gen_texture_mipmaps(font.texture)
           rl.set_texture_filter(font.texture, rl.TextureFilter.TEXTURE_FILTER_TRILINEAR)

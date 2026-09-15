@@ -212,6 +212,31 @@ class Multilang:
         return forms[idx]
     return singular if n == 1 else plural
 
+  def font_codepoints(self) -> list[int]:
+    """Glyphs needed to draw the current UI, including Simplified Chinese."""
+    chars = set(map(chr, range(32, 127)))
+    chars.update("–‑✓×°§•€£¥²⚠ⓘ◀▶✔✕⌫⇧␣○●↳çêüñ")
+    for name in self.languages:
+      chars.update(str(name))
+    for text in self._translations.values():
+      chars.update(text or "")
+    for forms in self._plurals.values():
+      for form in forms:
+        chars.update(form or "")
+    try:
+      from openpilot.starpilot.common.settings_zh_chs import ZH_CHS
+      for key, value in ZH_CHS.items():
+        chars.update(str(key))
+        chars.update(str(value))
+    except Exception:
+      cloudlog.exception("Failed to include Chinese settings glyphs")
+    try:
+      po_path = TRANSLATIONS_DIR.joinpath("app_zh-CHS.po")
+      chars.update(po_path.read_text(encoding="utf-8"))
+    except Exception:
+      pass
+    return sorted({ord(ch) for ch in chars if ch})
+
   def _load_languages(self):
     with LANGUAGES_FILE.open(encoding='utf-8') as f:
       self.languages = json.load(f)

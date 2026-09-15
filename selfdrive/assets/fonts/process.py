@@ -28,12 +28,22 @@ def _char_sets():
 
   for language, code in _languages().items():
     unifont.update(language)
+    short = str(code).removeprefix("main_")
     po_path = TRANSLATIONS_DIR / f"app_{code}.po"
+    if not po_path.exists():
+      po_path = TRANSLATIONS_DIR / f"app_{short}.po"
     try:
       chars = set(po_path.read_text(encoding="utf-8"))
     except FileNotFoundError:
       continue
-    (unifont if code in UNIFONT_LANGUAGES else base).update(chars)
+    (unifont if short in UNIFONT_LANGUAGES else base).update(chars)
+
+  zh_map = FONT_DIR.parents[2] / "starpilot" / "common" / "assets" / "settings_zh-CHS.json"
+  if zh_map.exists():
+    try:
+      unifont.update(zh_map.read_text(encoding="utf-8"))
+    except OSError:
+      pass
 
   return tuple(sorted(ord(c) for c in base)), tuple(sorted(ord(c) for c in unifont))
 
