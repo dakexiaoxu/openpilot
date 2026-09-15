@@ -314,7 +314,6 @@ const CATALOG_STRING_KEYS = new Set([
 ])
 
 function translateCatalogValue(value) {
-  if (typeof value === "string") return translateText(value)
   if (Array.isArray(value)) return value.map(translateCatalogValue)
   if (value && typeof value === "object") {
     const out = Array.isArray(value) ? [] : { ...value }
@@ -331,7 +330,8 @@ function translateCatalogValue(value) {
         })
       } else if (key === "labels" && Array.isArray(child)) {
         out[key] = child.map((item) => (typeof item === "string" ? translateText(item) : item))
-      } else out[key] = translateCatalogValue(child)
+      } else if (child && typeof child === "object") out[key] = translateCatalogValue(child)
+      else out[key] = child
     }
     return out
   }
