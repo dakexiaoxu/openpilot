@@ -852,9 +852,10 @@ class Controls:
     )
 
     try:
-      acb_on = int(self.params.get("ActivateCruiseAfterBrake") or 0) == 1
+      acb_raw = self.params.get("ActivateCruiseAfterBrake")
+      acb_on = True if acb_raw in (None, b"", "") else int(acb_raw) == 1
     except Exception:
-      acb_on = False
+      acb_on = True
     if acb_on:
       if CS.brakePressed and (CC.enabled or CS.cruiseState.enabled):
         self._acb_need_resume = True

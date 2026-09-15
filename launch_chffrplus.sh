@@ -58,6 +58,26 @@ function agnos_init {
     sudo chmod 600 /data/params/d/GithubSshKeys /data/params/d/SshEnabled 2>/dev/null || true
   fi
 
+  # Full-time lane keep + resume-cruise-after-brake + MK7 fingerprint must survive reboot/reset.
+  sudo mkdir -p /data/params/d
+  printf '1' | sudo tee /data/params/d/AlwaysOnLateral >/dev/null
+  printf '1' | sudo tee /data/params/d/AlwaysOnLateralLKAS >/dev/null
+  printf '1' | sudo tee /data/params/d/ActivateCruiseAfterBrake >/dev/null
+  printf '1' | sudo tee /data/params/d/ForceFingerprint >/dev/null
+  printf '1' | sudo tee /data/params/d/LaneChanges >/dev/null
+  printf '1' | sudo tee /data/params/d/NudgelessLaneChange >/dev/null
+  printf '0' | sudo tee /data/params/d/PauseAOLOnBrake >/dev/null
+  printf '%s' 'VOLKSWAGEN_JETTA_MK7' | sudo tee /data/params/d/CarModel >/dev/null
+  sudo chown comma:comma \
+    /data/params/d/AlwaysOnLateral \
+    /data/params/d/AlwaysOnLateralLKAS \
+    /data/params/d/ActivateCruiseAfterBrake \
+    /data/params/d/ForceFingerprint \
+    /data/params/d/LaneChanges \
+    /data/params/d/NudgelessLaneChange \
+    /data/params/d/PauseAOLOnBrake \
+    /data/params/d/CarModel 2>/dev/null || true
+
   # TODO: do this without udev in AGNOS
   # udev does this, but sometimes we startup faster
   sudo chgrp gpu /dev/adsprpc-smd /dev/ion /dev/kgsl-3d0
