@@ -1,7 +1,7 @@
 import { createApp, h } from "vue"
 import { AppShell } from "./components/AppShell.js"
 import { Home } from "./views/Home.js"
-import { Settings } from "./views/Settings.js"
+import { Settings } from "./views/Settings.js?v=zh-6"
 import { Tools } from "./views/Tools.js"
 import { Recordings } from "./views/Recordings.js"
 import { Logs } from "./views/Logs.js"
