@@ -20,6 +20,7 @@ STALE_SECONDS = 8.0
 WEB_PORT = int(os.environ.get("CARROT_WEB_PORT", "7000"))
 NAVI_HTTP_PORT = int(os.environ.get("CARROT_NAVI_HTTP_PORT", "7713"))
 DISCOVERY_PORT = int(os.environ.get("CARROT_NAVI_DISCOVERY_PORT", "7705"))
+NAVI_UDP_PORT = int(os.environ.get("CARROT_NAVI_UDP_PORT", "7706"))
 DISCOVERY_INTERVAL_S = 1.0
 
 # Same TBT ids as CarrotServ._update_tbt on Lane/Carrot.
@@ -235,6 +236,20 @@ def _discovery_loop() -> None:
     time.sleep(DISCOVERY_INTERVAL_S)
 
 
+def _udp_7706_loop() -> None:
+  sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+  sock.bind(("0.0.0.0", NAVI_UDP_PORT))
+  print(f"[amap_carrot_bridge] UDP navi on 0.0.0.0:{NAVI_UDP_PORT}", flush=True)
+  while True:
+    try:
+      data, _addr = sock.recvfrom(65535)
+      payload = json.loads(data.decode("utf-8", errors="replace") or "{}")
+      publish_navi(_extract_rgdata(payload))
+    except Exception:
+      continue
+
+
 class NaviHandler(BaseHTTPRequestHandler):
   protocol_version = "HTTP/1.1"
 
@@ -265,6 +280,7 @@ class NaviHandler(BaseHTTPRequestHandler):
         "webPort": WEB_PORT,
         "naviHttpPort": NAVI_HTTP_PORT,
         "discoveryPort": DISCOVERY_PORT,
+        "naviUdpPort": NAVI_UDP_PORT,
         "advertiseIp": detect_advertise_ip(),
         "lastNaviAt": _last_navi_at,
         "navi": _last_navi,
@@ -310,6 +326,7 @@ def _serve(port: int) -> None:
 def main() -> None:
   threading.Thread(target=_stale_watch, daemon=True).start()
   threading.Thread(target=_discovery_loop, daemon=True).start()
+  threading.Thread(target=_udp_7706_loop, daemon=True).start()
   threading.Thread(target=_serve, args=(NAVI_HTTP_PORT,), daemon=True).start()
   _serve(WEB_PORT)
 

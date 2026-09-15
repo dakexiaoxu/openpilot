@@ -5342,6 +5342,19 @@ def setup(app):
   }
 
   @app.after_request
+  def add_navi_cors(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
+
+  @app.route("/api/navigation", methods=["OPTIONS"])
+  @app.route("/api/navigation_key", methods=["OPTIONS"])
+  @app.route("/api/navigation/favorite", methods=["OPTIONS"])
+  def navi_cors_preflight():
+    return ("", 204)
+
+  @app.after_request
   def disable_device_settings_asset_cache(response):
     if request.path in {
       "/assets/components/router.js",

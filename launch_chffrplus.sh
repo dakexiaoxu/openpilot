@@ -146,6 +146,13 @@ function launch {
     fi
   }
   start_amap_carrot_bridge
+  if command -v iptables >/dev/null 2>&1; then
+    sudo iptables -C INPUT -p tcp --dport 8082 -j ACCEPT 2>/dev/null || sudo iptables -I INPUT -p tcp --dport 8082 -j ACCEPT
+    sudo iptables -C INPUT -p tcp --dport 7000 -j ACCEPT 2>/dev/null || sudo iptables -I INPUT -p tcp --dport 7000 -j ACCEPT
+    sudo iptables -C INPUT -p tcp --dport 7713 -j ACCEPT 2>/dev/null || sudo iptables -I INPUT -p tcp --dport 7713 -j ACCEPT
+    sudo iptables -C INPUT -p udp --dport 7706 -j ACCEPT 2>/dev/null || sudo iptables -I INPUT -p udp --dport 7706 -j ACCEPT
+    sudo iptables -C INPUT -p udp --dport 7705 -j ACCEPT 2>/dev/null || sudo iptables -I INPUT -p udp --dport 7705 -j ACCEPT
+  fi
 
   # hardware specific init
   if [ -f /AGNOS ]; then
