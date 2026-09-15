@@ -50,11 +50,11 @@ jobs:
           cd /tmp/starpilot
           git config user.name "dakexiaoxu"
           git config user.email "xuxiujun2017@gmail.com"
+          # Shallow clones cannot be pushed to another GitHub repo (missing objects).
+          # Make a complete single-commit branch from the working tree instead.
+          git checkout --orphan StarPilot-mk7
           git add -A
-          if git diff --cached --quiet; then
-            echo "PATCH_MADE_NO_CHANGES"
-            exit 1
-          fi
+          git status --short | head
           git commit -m "Hardcode MK7 fingerprint, skip AGNOS updater, MQB CAN parsers, and ACB."
           git remote add dakexiaoxu "https://x-access-token:${GH_TOKEN}@github.com/dakexiaoxu/openpilot.git"
           git -c http.postBuffer=524288000 push --force -u dakexiaoxu HEAD:StarPilot
