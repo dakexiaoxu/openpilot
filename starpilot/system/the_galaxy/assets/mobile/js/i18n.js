@@ -102,6 +102,12 @@ const TRANSLATIONS = {
     "This setting can only be changed while parked.": "此设置只能在车辆停放时更改。",
     Default: "默认值", "Loading...": "加载中...", "No options available": "没有可用选项",
     "Working...": "处理中...", Run: "运行", Manage: "管理", Close: "关闭", Stock: "原厂",
+    Dashboard: "仪表盘", "Last drive": "最近一次驾驶", "No drives yet": "还没有驾驶记录",
+    "Loading dashboard...": "正在加载仪表盘...", "Failed to load dashboard": "仪表盘加载失败",
+    "Your driving": "你的驾驶", "This week": "本周", "Personal records": "个人纪录",
+    "Recent drives": "最近驾驶", "device online": "设备在线", "device offline": "设备离线",
+    duration: "时长", engaged: "已启用", kilometers: "公里", miles: "英里", "kph avg": "平均公里/小时",
+    "mph avg": "平均英里/小时", Refresh: "刷新", Storage: "存储", Software: "软件", Vitals: "设备状态",
   },
 }
 
