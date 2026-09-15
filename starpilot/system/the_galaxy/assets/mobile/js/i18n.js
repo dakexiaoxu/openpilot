@@ -29,7 +29,7 @@ const TRANSLATIONS = {
     "Light mode": "Modo claro", "Switch to dark mode": "Cambiar a modo oscuro", "Switch to light mode": "Cambiar a modo claro",
     Settings: "Configuración", Language: "Idioma", "Select language": "Seleccionar idioma", Advanced: "Avanzado",
     "result(s)": "resultado(s)",
-    "Galaxy uses English when no language is selected.": "Galaxy usa inglés si no se selecciona un idioma.",
+    "Galaxy uses Chinese when no language is selected.": "Galaxy usa chino si no se selecciona un idioma.",
     "Language updated.": "Idioma actualizado.", "Unable to save language.": "No se pudo guardar el idioma.",
     "Loading configuration...": "Cargando configuración...", "No settings available.": "No hay ajustes disponibles.",
     "No settings in this section.": "No hay ajustes en esta sección.", "Locked:": "Bloqueado:", "Step:": "Paso:",
@@ -51,7 +51,7 @@ const TRANSLATIONS = {
     "Light mode": "Mode clair", "Switch to dark mode": "Passer au mode sombre", "Switch to light mode": "Passer au mode clair",
     Settings: "Paramètres", Language: "Langue", "Select language": "Choisir la langue", Advanced: "Avancé",
     "result(s)": "résultat(s)",
-    "Galaxy uses English when no language is selected.": "Galaxy utilise l’anglais si aucune langue n’est sélectionnée.",
+    "Galaxy uses Chinese when no language is selected.": "Galaxy utilise le chinois si aucune langue n’est sélectionnée.",
     "Language updated.": "Langue mise à jour.", "Unable to save language.": "Impossible d’enregistrer la langue.",
     "Loading configuration...": "Chargement de la configuration...", "No settings available.": "Aucun réglage disponible.",
     "No settings in this section.": "Aucun réglage dans cette section.", "Locked:": "Verrouillé :", "Step:": "Pas :",
@@ -73,7 +73,7 @@ const TRANSLATIONS = {
     "Light mode": "라이트 모드", "Switch to dark mode": "다크 모드로 전환", "Switch to light mode": "라이트 모드로 전환",
     Settings: "설정", Language: "언어", "Select language": "언어 선택", Advanced: "고급",
     "result(s)": "개 결과",
-    "Galaxy uses English when no language is selected.": "언어를 선택하지 않으면 Galaxy는 영어를 사용합니다.",
+    "Galaxy uses Chinese when no language is selected.": "언어를 선택하지 않으면 Galaxy는 중국어를 사용합니다.",
     "Language updated.": "언어가 업데이트되었습니다.", "Unable to save language.": "언어를 저장할 수 없습니다.",
     "Loading configuration...": "설정을 불러오는 중...", "No settings available.": "사용 가능한 설정이 없습니다.",
     "No settings in this section.": "이 섹션에 설정이 없습니다.", "Locked:": "잠김:", "Step:": "단계:",
@@ -95,7 +95,7 @@ const TRANSLATIONS = {
     "Light mode": "浅色模式", "Switch to dark mode": "切换到深色模式", "Switch to light mode": "切换到浅色模式",
     Settings: "设置", Language: "语言", "Select language": "选择语言", Advanced: "高级",
     "result(s)": "个结果",
-    "Galaxy uses English when no language is selected.": "未选择语言时，Galaxy 将使用英语。",
+    "Galaxy uses Chinese when no language is selected.": "未选择语言时默认使用简体中文，仍可切换为英语。",
     "Language updated.": "语言已更新。", "Unable to save language.": "无法保存语言。",
     "Loading configuration...": "正在加载配置...", "No settings available.": "没有可用设置。",
     "No settings in this section.": "此部分没有设置。", "Locked:": "已锁定：", "Step:": "步长：",
@@ -228,13 +228,16 @@ function translateText(value) {
   return sourceWords >= 4 && replacedWords / sourceWords < 0.8 ? source : translated
 }
 
+const DEFAULT_LANGUAGE = "zh-CHS"
+
 function storageValue() {
-  try { return window.localStorage.getItem(STORAGE_KEY) || "zh-CHS" } catch (e) { return "zh-CHS" }
+  try { return window.localStorage.getItem(STORAGE_KEY) || DEFAULT_LANGUAGE } catch (e) { return DEFAULT_LANGUAGE }
 }
 
 export function normalizeLanguage(value) {
   const code = String(value || "").trim().replace(/^main_/i, "")
-  return SUPPORTED_CODES.has(code) ? code : "en"
+  if (!code) return DEFAULT_LANGUAGE
+  return SUPPORTED_CODES.has(code) ? code : DEFAULT_LANGUAGE
 }
 
 export const languageState = reactive({ code: normalizeLanguage(storageValue()) })
@@ -328,7 +331,7 @@ export function t(key, fallback = key) {
 }
 
 export function loadCatalogTranslations() {
-  return fetch("/assets/components/tools/settings_zh-CHS.json?v=zh-2", { cache: "no-store" })
+  return fetch("/assets/components/tools/settings_zh-CHS.json?v=zh-3", { cache: "no-store" })
     .then((res) => (res.ok ? res.json() : {}))
     .then((map) => {
       if (map && typeof map === "object") Object.assign(TRANSLATIONS["zh-CHS"], map)

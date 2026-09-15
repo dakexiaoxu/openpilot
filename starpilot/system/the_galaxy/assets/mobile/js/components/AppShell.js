@@ -77,9 +77,9 @@ export const AppShell = {
     async loadLanguage() {
       try {
         const values = await api.getParams()
-        setLanguage(values?.LanguageSetting || languageState.code || "en")
+        setLanguage(values?.LanguageSetting || languageState.code || "zh-CHS")
       } catch (e) {
-        setLanguage(languageState.code || "en")
+        setLanguage(languageState.code || "zh-CHS")
       }
     },
     clearSearch() {

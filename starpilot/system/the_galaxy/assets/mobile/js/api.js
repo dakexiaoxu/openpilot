@@ -1,4 +1,11 @@
-export const LAYOUT_URL = "/assets/components/tools/device_settings_layout.json?v=settings-zh-2"
+import { languageState } from "./i18n.js"
+
+export const LAYOUT_URL = "/assets/components/tools/device_settings_layout.json?v=settings-zh-3"
+
+function layoutUrl() {
+  const lang = languageState?.code || "zh-CHS"
+  return `${LAYOUT_URL}&lang=${encodeURIComponent(lang)}`
+}
 
 async function parse(res) {
   const data = await res.json().catch(() => ({}))
@@ -52,7 +59,7 @@ export const api = {
   getOptions(endpoint) { return request(endpoint) },
 
   async getLayout() {
-    const data = await request(LAYOUT_URL, { cache: "no-store" })
+    const data = await request(layoutUrl(), { cache: "no-store" })
     return (data || [])
       .map((section) => ({ ...section, params: (section.params || []).filter((p) => p.key !== "Model") }))
       .filter((section) => (section.params || []).length > 0)

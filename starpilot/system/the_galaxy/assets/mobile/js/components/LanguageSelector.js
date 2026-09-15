@@ -57,7 +57,7 @@ export const LanguageSelector = {
             <option v-for="option in languages" :key="option.value" :value="option.value">{{ tr(option.label, option.label) }}</option>
           </select>
         </label>
-        <small class="gx-row__desc gx-language-card__hint">{{ tr("Galaxy uses English when no language is selected.") }}</small>
+        <small class="gx-row__desc gx-language-card__hint">{{ tr("Galaxy uses Chinese when no language is selected.") }}</small>
       </div>
       <p v-if="error" class="gx-row__desc" style="color:var(--danger); margin:8px 0 0;">{{ error }}</p>
     </div>

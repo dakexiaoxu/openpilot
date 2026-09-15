@@ -5649,9 +5649,12 @@ def setup(app):
     layout_data = load_settings_catalog()
     if layout_data is None:
       return "Settings catalog not found", 404
-    lang = request.args.get("lang") or params.get("LanguageSetting") or ""
-    if language_wants_chinese(lang):
-      layout_data = translate_catalog(layout_data)
+    try:
+      lang = request.args.get("lang") or params.get("LanguageSetting", encoding="utf8") or "main_zh-CHS"
+      if language_wants_chinese(lang):
+        layout_data = translate_catalog(layout_data)
+    except Exception:
+      cloudlog.exception("Chinese settings catalog translation failed")
     response = jsonify(layout_data)
     response.headers["Cache-Control"] = "no-store"
     return response
@@ -5795,7 +5798,7 @@ def setup(app):
       "amap2Key": params.get("AMapKey2", encoding="utf8") or "",
       "destination": params.get("NavDestination", encoding="utf8") or "",
       "isMetric": params.get_bool("IsMetric"),
-      "language": params.get("LanguageSetting", encoding="utf8") or "",
+      "language": params.get("LanguageSetting", encoding="utf8") or "main_zh-CHS",
       "lastPosition": {
         "latitude": str(last_position.get("latitude", "")),
         "longitude": str(last_position.get("longitude", ""))

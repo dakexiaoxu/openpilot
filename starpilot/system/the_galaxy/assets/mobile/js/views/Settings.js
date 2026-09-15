@@ -84,7 +84,7 @@ export const Settings = {
         ])
         this.layout = longitudinalModeLayout(layout)
         this.values = values || {}
-        setLanguage(this.values.LanguageSetting || "en")
+        setLanguage(this.values.LanguageSetting || languageState.code || "zh-CHS")
         this.defaults = defaults || {}
         if (!this.activeSectionSlug && this.sections.length) {
           const preferred = this.sections.find((s) => s.slug === this.defaultSectionSlug)

@@ -68,6 +68,20 @@ function agnos_init {
   printf '1' | sudo tee /data/params/d/NudgelessLaneChange >/dev/null
   printf '0' | sudo tee /data/params/d/PauseAOLOnBrake >/dev/null
   printf '%s' 'VOLKSWAGEN_JETTA_MK7' | sudo tee /data/params/d/CarModel >/dev/null
+  # Chinese UI + metric units must survive reboot. Do not leave these files missing.
+  printf '%s' 'main_zh-CHS' | sudo tee /data/params/d/LanguageSetting >/dev/null
+  printf '1' | sudo tee /data/params/d/IsMetric >/dev/null
+  # Jetta MK7 has a dedicated NNFF torque model; RDF V4 is the current StarPilot driving model.
+  printf '1' | sudo tee /data/params/d/NNFF >/dev/null
+  printf '0' | sudo tee /data/params/d/NNFFLite >/dev/null
+  printf '1' | sudo tee /data/params/d/LateralTune >/dev/null
+  if [ ! -s /data/params/d/DrivingModel ]; then
+    printf '%s' 'rdf43' | sudo tee /data/params/d/DrivingModel >/dev/null
+    printf '%s' 'rdf43' | sudo tee /data/params/d/Model >/dev/null
+    printf '%s' 'Regret Driven Framework V4' | sudo tee /data/params/d/DrivingModelName >/dev/null
+    printf '%s' 'v15' | sudo tee /data/params/d/DrivingModelVersion >/dev/null
+    printf '%s' 'v15' | sudo tee /data/params/d/ModelVersion >/dev/null
+  fi
   sudo chown comma:comma \
     /data/params/d/AlwaysOnLateral \
     /data/params/d/AlwaysOnLateralLKAS \
@@ -76,7 +90,17 @@ function agnos_init {
     /data/params/d/LaneChanges \
     /data/params/d/NudgelessLaneChange \
     /data/params/d/PauseAOLOnBrake \
-    /data/params/d/CarModel 2>/dev/null || true
+    /data/params/d/CarModel \
+    /data/params/d/LanguageSetting \
+    /data/params/d/IsMetric \
+    /data/params/d/NNFF \
+    /data/params/d/NNFFLite \
+    /data/params/d/LateralTune \
+    /data/params/d/DrivingModel \
+    /data/params/d/Model \
+    /data/params/d/DrivingModelName \
+    /data/params/d/DrivingModelVersion \
+    /data/params/d/ModelVersion 2>/dev/null || true
 
   # TODO: do this without udev in AGNOS
   # udev does this, but sometimes we startup faster

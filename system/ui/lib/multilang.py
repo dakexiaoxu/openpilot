@@ -145,10 +145,21 @@ def load_translations(path) -> tuple[dict[str, str], dict[str, list[str]]]:
   return translations, plurals
 
 
+def _decode_language(raw) -> str:
+  if raw is None:
+    return ""
+  if isinstance(raw, (bytes, bytearray)):
+    raw = raw.decode("utf-8", "ignore")
+  text = str(raw).strip()
+  if text in ("None", "none", "null"):
+    return ""
+  return text
+
+
 class Multilang:
   def __init__(self):
     self._params = Params() if Params is not None else None
-    self._language: str = "en"
+    self._language: str = "zh-CHS"
     self.languages: dict[str, str] = {}
     self.codes: dict[str, str] = {}
     self._translations: dict[str, str] = {}
@@ -169,17 +180,21 @@ class Multilang:
       po_path = TRANSLATIONS_DIR.joinpath(f'app_{self._language}.po')
       self._translations, self._plurals = load_translations(po_path)
       self._plural_selector = PLURAL_SELECTORS.get(self._language, lambda n: 0)
-      if self._language.startswith("zh"):
-        try:
-          from openpilot.starpilot.common.settings_zh_chs import ZH_CHS
-          self._translations.update(ZH_CHS)
-        except Exception:
-          cloudlog.exception("Failed to load StarPilot Chinese settings translations")
       cloudlog.debug(f"Loaded translations for language: {self._language}")
     except FileNotFoundError:
       cloudlog.error(f"No translation file found for language: {self._language}, using default.")
       self._translations = {}
       self._plurals = {}
+    except Exception:
+      cloudlog.exception(f"Failed to load translations for language: {self._language}")
+      self._translations = {}
+      self._plurals = {}
+    if self._language.startswith("zh"):
+      try:
+        from openpilot.starpilot.common.settings_zh_chs import ZH_CHS
+        self._translations.update(ZH_CHS)
+      except Exception:
+        cloudlog.exception("Failed to load StarPilot Chinese settings translations")
 
   def change_language(self, language_code: str) -> None:
     self._params.put("LanguageSetting", language_code)
@@ -202,10 +217,17 @@ class Multilang:
       self.languages = json.load(f)
     self.codes = {v: k for k, v in self.languages.items()}
 
+    known_short = {str(code).removeprefix("main_") for code in list(self.codes) + list(self.languages.values())}
+    self._language = "zh-CHS"
     if self._params is not None:
-      lang = str(self._params.get("LanguageSetting")).removeprefix("main_")
-      if lang in self.codes:
+      lang = _decode_language(self._params.get("LanguageSetting")).removeprefix("main_")
+      if lang in known_short:
         self._language = lang
+      else:
+        try:
+          self._params.put("LanguageSetting", "main_zh-CHS")
+        except Exception:
+          cloudlog.exception("Failed to persist Chinese LanguageSetting")
 
 
 multilang = Multilang()

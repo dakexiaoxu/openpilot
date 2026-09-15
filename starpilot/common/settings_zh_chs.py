@@ -121,6 +121,19 @@ def translate_catalog(layout: list[dict[str, Any]] | None) -> list[dict[str, Any
   return data
 
 
+def _lang_text(value: Any) -> str:
+  if isinstance(value, (bytes, bytearray)):
+    value = value.decode("utf-8", "ignore")
+  text = str(value or "").strip()
+  if len(text) >= 3 and text.startswith("b'") and text.endswith("'"):
+    text = text[2:-1]
+  return text.replace("main_", "").replace("MAIN_", "")
+
+
 def language_wants_chinese(value: Any) -> bool:
-  text = str(value or "").strip().lower().replace("main_", "")
+  text = _lang_text(value).lower()
+  if not text or text in ("none", "null"):
+    return True
+  if text in ("en", "english"):
+    return False
   return text.startswith("zh")
