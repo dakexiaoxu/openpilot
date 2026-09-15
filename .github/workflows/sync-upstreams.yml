@@ -1,0 +1,72 @@
+name: Sync upstreams without deleting
+
+on:
+  schedule:
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - local: Carrot
+            source: https://gitcode.com/jixiexiaoge/openpilot.git
+            branch: Carrot
+          - local: Lane
+            source: https://gitcode.com/jixiexiaoge/openpilot.git
+            branch: Lane
+          - local: egpu
+            source: https://gitcode.com/jixiexiaoge/openpilot.git
+            branch: egpu
+          - local: onnx
+            source: https://gitcode.com/jixiexiaoge/openpilot.git
+            branch: onnx
+          - local: StarPilot
+            source: https://github.com/firestar5683/StarPilot.git
+            branch: StarPilot
+    steps:
+      - name: Fetch upstream and merge into local branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LOCAL_BRANCH: ${{ matrix.local }}
+          SOURCE_URL: ${{ matrix.source }}
+          SOURCE_BRANCH: ${{ matrix.branch }}
+        run: |
+          set -euo pipefail
+          git config --global user.name "dakexiaoxu"
+          git config --global user.email "xuxiujun2017@gmail.com"
+          git init work
+          cd work
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git remote add upstream "$SOURCE_URL"
+
+          if ! git fetch --depth 1 origin "$LOCAL_BRANCH"; then
+            echo "LOCAL_MISSING $LOCAL_BRANCH"
+            exit 1
+          fi
+          git checkout -B "$LOCAL_BRANCH" "FETCH_HEAD"
+
+          if ! git ls-remote --exit-code --heads upstream "$SOURCE_BRANCH"; then
+            echo "UPSTREAM_GONE keep local $LOCAL_BRANCH"
+            exit 0
+          fi
+
+          if ! git fetch --depth 50 upstream "$SOURCE_BRANCH"; then
+            echo "UPSTREAM_FETCH_FAILED keep local $LOCAL_BRANCH"
+            exit 0
+          fi
+
+          if git merge --no-edit "upstream/$SOURCE_BRANCH"; then
+            git push origin "HEAD:$LOCAL_BRANCH"
+            echo "MERGED_OK $LOCAL_BRANCH"
+          else
+            git merge --abort || true
+            echo "MERGE_CONFLICT keep local $LOCAL_BRANCH"
+            exit 0
+          fi
