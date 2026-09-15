@@ -1,6 +1,6 @@
 import { longitudinalModeLayout, LONGITUDINAL_MODE_KEY } from "/assets/components/tools/longitudinal_mode.mjs"
 import { LongitudinalMode } from "../components/LongitudinalMode.js"
-import { api, showSnackbar } from "../api.js"
+import { api, showSnackbar } from "../api.js?v=zh-6"
 import { navigate, store } from "../store.js"
 import {
   applyParamChange, countAdvancedHiddenByDeveloperMode, GALAXY_DEVELOPER_MODE_KEY, isSettingVisible,
