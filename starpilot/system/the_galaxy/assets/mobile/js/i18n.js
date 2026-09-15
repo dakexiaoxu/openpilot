@@ -216,6 +216,9 @@ function translateText(value) {
   const exact = TRANSLATIONS[languageState?.code]?.[source]
   if (exact) return exact
   if (!languageState || languageState.code === "en" || /https?:\/\//i.test(source)) return source
+  const sourceWords = source.match(/[A-Za-z]+/g)?.length || 0
+  // Long sentences must use the exact catalog map. Word swapping creates mixed English/Chinese.
+  if (sourceWords >= 4) return source
   let translated = source
   let replacedWords = 0
   for (const [pattern, replacement, wordCount] of TERM_REPLACERS[languageState.code] || []) {
@@ -224,8 +227,43 @@ function translateText(value) {
       return `${prefix}${replacement}`
     })
   }
-  const sourceWords = source.match(/[A-Za-z]+/g)?.length || 0
-  return sourceWords >= 4 && replacedWords / sourceWords < 0.8 ? source : translated
+  return replacedWords ? translated : source
+}
+
+const CATALOG_STRING_KEYS = new Set([
+  "name", "label", "description", "picker_description", "disabled_reason",
+  "action_label", "confirm_message", "picker_label", "placeholder", "hint",
+  "title", "subtitle", "message", "disabled_label", "unit",
+])
+
+function translateCatalogValue(value) {
+  if (typeof value === "string") return translateText(value)
+  if (Array.isArray(value)) return value.map(translateCatalogValue)
+  if (value && typeof value === "object") {
+    const out = Array.isArray(value) ? [] : { ...value }
+    for (const [key, child] of Object.entries(value)) {
+      if (CATALOG_STRING_KEYS.has(key) && typeof child === "string") out[key] = translateText(child)
+      else if (key === "options" && Array.isArray(child)) {
+        out[key] = child.map((opt) => {
+          if (!opt || typeof opt !== "object") return typeof opt === "string" ? translateText(opt) : opt
+          return {
+            ...opt,
+            label: typeof opt.label === "string" ? translateText(opt.label) : opt.label,
+            description: typeof opt.description === "string" ? translateText(opt.description) : opt.description,
+          }
+        })
+      } else if (key === "labels" && Array.isArray(child)) {
+        out[key] = child.map((item) => (typeof item === "string" ? translateText(item) : item))
+      } else out[key] = translateCatalogValue(child)
+    }
+    return out
+  }
+  return value
+}
+
+export function translateCatalog(layout) {
+  if (languageState.code !== "zh-CHS") return layout
+  return translateCatalogValue(layout)
 }
 
 const DEFAULT_LANGUAGE = "zh-CHS"
@@ -331,7 +369,7 @@ export function t(key, fallback = key) {
 }
 
 export function loadCatalogTranslations() {
-  return fetch("/assets/components/tools/settings_zh-CHS.json?v=zh-3", { cache: "no-store" })
+  return fetch("/assets/components/tools/settings_zh-CHS.json?v=zh-4", { cache: "no-store" })
     .then((res) => (res.ok ? res.json() : {}))
     .then((map) => {
       if (map && typeof map === "object") Object.assign(TRANSLATIONS["zh-CHS"], map)
@@ -341,5 +379,10 @@ export function loadCatalogTranslations() {
     .catch(() => ({}))
 }
 
+const catalogReady = loadCatalogTranslations()
+
+export function whenCatalogReady() {
+  return catalogReady
+}
+
 setLanguage(languageState.code)
-loadCatalogTranslations()

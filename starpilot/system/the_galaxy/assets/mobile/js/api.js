@@ -1,6 +1,6 @@
-import { languageState } from "./i18n.js"
+import { languageState, translateCatalog, whenCatalogReady } from "./i18n.js"
 
-export const LAYOUT_URL = "/assets/components/tools/device_settings_layout.json?v=settings-zh-3"
+export const LAYOUT_URL = "/assets/components/tools/device_settings_layout.json?v=settings-zh-4"
 
 function layoutUrl() {
   const lang = languageState?.code || "zh-CHS"
@@ -59,8 +59,9 @@ export const api = {
   getOptions(endpoint) { return request(endpoint) },
 
   async getLayout() {
+    await whenCatalogReady()
     const data = await request(layoutUrl(), { cache: "no-store" })
-    return (data || [])
+    return translateCatalog(data || [])
       .map((section) => ({ ...section, params: (section.params || []).filter((p) => p.key !== "Model") }))
       .filter((section) => (section.params || []).length > 0)
   },

@@ -1,4 +1,5 @@
 import { navigate, toolHref } from "../store.js"
+import { t } from "../i18n.js"
 
 const TOOLS = [
   { name: "Bluetooth", link: "/bluetooth", icon: "bi-bluetooth", desc: "Pair devices, controllers, & audio" },
@@ -18,18 +19,19 @@ export const Tools = {
   name: "Tools",
   data() { return { TOOLS } },
   methods: {
-    open(t) {
-      navigate(toolHref(t.link))
+    tr(key, fallback = key) { return t(key, fallback) },
+    open(tool) {
+      navigate(toolHref(tool.link))
     },
   },
   template: `
     <div>
-      <h2 style="margin-top:0;">Tools</h2>
+      <h2 style="margin-top:0;">{{ tr("Tools") }}</h2>
       <div class="gx-grid">
-        <button v-for="t in TOOLS" :key="t.link" type="button" class="gx-tile" @click="open(t)">
-          <i class="bi" :class="t.icon"></i>
-          <span>{{ t.name }}</span>
-          <small style="color: var(--text-muted);">{{ t.desc }}</small>
+        <button v-for="tool in TOOLS" :key="tool.link" type="button" class="gx-tile" @click="open(tool)">
+          <i class="bi" :class="tool.icon"></i>
+          <span>{{ tr(tool.name, tool.name) }}</span>
+          <small style="color: var(--text-muted);">{{ tr(tool.desc, tool.desc) }}</small>
         </button>
       </div>
     </div>

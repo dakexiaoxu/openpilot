@@ -4,6 +4,7 @@ import { NavigationKeysPanel } from "../components/NavigationKeysPanel.js"
 import { SpeedLimitsPanel } from "../components/SpeedLimitsPanel.js"
 import { GalaxyTabs } from "../components/GalaxyTabs.js"
 import { useTabRouting } from "../composables.js"
+import { t } from "../i18n.js"
 
 const TABS = {
   nav: "Destination",
@@ -16,6 +17,9 @@ export const Navigation = {
   name: "Navigation",
   components: { NavigationDestinationPanel, MapsPanel, NavigationKeysPanel, SpeedLimitsPanel, GalaxyTabs },
   data() { return { TABS } },
+  methods: {
+    tr(key, fallback = key) { return t(key, fallback) },
+  },
   setup() {
     return useTabRouting("/navigation", {
       nav: "", maps: "maps", keys: "keys", speeds: "speeds",
@@ -29,7 +33,7 @@ export const Navigation = {
         </div>
       </template>
       <div v-else class="gx-view">
-        <h2 style="margin-top:0;">Navigation & Maps</h2>
+        <h2 style="margin-top:0;">{{ tr("Navigation & Maps") }}</h2>
         <GalaxyTabs :items="TABS" :active="tab" @select="selectTab" />
         <template v-if="tab === 'maps'"><MapsPanel /></template>
         <template v-if="tab === 'keys'"><NavigationKeysPanel /></template>

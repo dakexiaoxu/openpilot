@@ -2,7 +2,7 @@ import { longitudinalModeLayout, LONGITUDINAL_MODE_KEY } from "./longitudinal_mo
 
 const stylesheet = new URL("./controller_action_picker.css", import.meta.url).href
 
-const layoutUrl = "/assets/components/tools/device_settings_layout.json?v=settings-zh-3&lang=zh-CHS"
+const layoutUrl = "/assets/components/tools/device_settings_layout.json?v=settings-zh-4&lang=zh-CHS"
 
 function settingsAnchor(key) {
   if (["ExperimentalMode", "ConditionalExperimental", "ConditionalChill"].includes(key)) return LONGITUDINAL_MODE_KEY

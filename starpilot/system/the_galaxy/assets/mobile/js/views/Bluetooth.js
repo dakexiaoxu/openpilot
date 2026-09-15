@@ -3,6 +3,7 @@ import { WheelControls } from "../components/WheelControls.js"
 import { GalaxySection } from "../components/GalaxySection.js"
 import { GalaxyTabs } from "../components/GalaxyTabs.js"
 import { useTabRouting } from "../composables.js"
+import { t } from "../i18n.js"
 
 const TABS = {
   bluetooth: "Bluetooth",
@@ -16,9 +17,10 @@ export const Bluetooth = {
     return useTabRouting("/bluetooth", { bluetooth: "bluetooth", controllers: "controllers" })
   },
   data() { return { TABS } },
+  methods: { tr(key, fallback = key) { return t(key, fallback) } },
   template: `
     <div class="gx-view">
-      <h2 style="margin-top:0;">Bluetooth</h2>
+      <h2 style="margin-top:0;">{{ tr("Bluetooth") }}</h2>
       <GalaxyTabs :items="TABS" :active="tab" @select="selectTab" />
 
       <template v-if="tab === 'bluetooth'">

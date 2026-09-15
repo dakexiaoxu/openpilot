@@ -19,13 +19,22 @@ _STRING_KEYS = (
   "action_label",
   "confirm_message",
   "picker_label",
+  "placeholder",
+  "hint",
+  "title",
+  "subtitle",
+  "message",
+  "disabled_label",
+  "unit",
 )
 
 _POINT_SPEED = re.compile(r"^Vehicle speed in mph for curve point (\d+)\.?$")
 _POINT_ACCEL = re.compile(r"^Maximum acceleration in m/s² at curve point (\d+)\.?$")
 _POINT_LABEL_SPEED = re.compile(r"^Point (\d+) Speed$")
 _POINT_LABEL_ACCEL = re.compile(r"^Point (\d+) Max Accel$")
-_OFFSET_MPH = re.compile(r"^Speed Offset \((\d+)[–-](\d+) mph\)$")
+_OFFSET_KMH = re.compile(r"^Speed Offset \((\d+)[–-](\d+) km/h\)$")
+_OFFSET_DESC_MPH = re.compile(r"^How much to offset posted speed[- ]limits between ([0-9]+[–-][0-9]+) mph\.$")
+_OFFSET_DESC_KMH = re.compile(r"^How much to offset posted speed[- ]limits between ([0-9]+[–-][0-9]+) km/h\.$")
 _WEATHER_FOLLOW = re.compile(r"^Increase Following Distance by:$")
 _BUTTON_PRESS = re.compile(
   r'^Action performed when the (?:remapped )?"([^"]+)" button is pressed'
@@ -42,6 +51,12 @@ def _load_map() -> dict[str, str]:
   if not isinstance(data, dict):
     return {}
   return {str(k): str(v) for k, v in data.items() if k and v}
+
+
+def reload_map() -> dict[str, str]:
+  global ZH_CHS
+  ZH_CHS = _load_map()
+  return ZH_CHS
 
 
 ZH_CHS = _load_map()
@@ -63,6 +78,15 @@ def _pattern_translate(text: str) -> str | None:
   m = _OFFSET_MPH.match(text)
   if m:
     return f"限速偏移（{m.group(1)}–{m.group(2)} 英里/小时）"
+  m = _OFFSET_KMH.match(text)
+  if m:
+    return f"限速偏移（{m.group(1)}–{m.group(2)} 公里/小时）"
+  m = _OFFSET_DESC_MPH.match(text)
+  if m:
+    return f"对 {m.group(1)} 英里/小时区间的限速偏移量。"
+  m = _OFFSET_DESC_KMH.match(text)
+  if m:
+    return f"对 {m.group(1)} 公里/小时区间的限速偏移量。"
   m = _BUTTON_PRESS.match(text)
   if m:
     name = translate_text(m.group(1))
@@ -105,6 +129,8 @@ def translate_catalog(layout: list[dict[str, Any]] | None) -> list[dict[str, Any
           for step in child:
             if isinstance(step, dict) and isinstance(step.get("description"), str):
               step["description"] = translate_text(step["description"])
+        elif key == "labels" and isinstance(child, list):
+          obj[key] = [translate_text(item) if isinstance(item, str) else item for item in child]
         elif key == "options" and isinstance(child, list):
           for opt in child:
             if isinstance(opt, dict):

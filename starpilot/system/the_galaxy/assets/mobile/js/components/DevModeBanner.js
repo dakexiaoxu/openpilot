@@ -10,7 +10,9 @@ export const DevModeBanner = {
   computed: {
     visible() { return !this.devModeOn && this.hiddenCount > 0 },
     hiddenLabel() {
-      return t("{n} advanced settings hidden.").replace("{n}", String(this.hiddenCount))
+      const n = String(this.hiddenCount)
+      const translated = t("{n} advanced settings hidden.")
+      return translated.includes("{n}") ? translated.replace("{n}", n) : `已隐藏 ${n} 项高级设置。`
     },
   },
   methods: {

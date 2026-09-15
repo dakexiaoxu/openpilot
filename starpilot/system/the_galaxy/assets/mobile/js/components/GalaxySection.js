@@ -1,3 +1,5 @@
+import { t } from "../i18n.js"
+
 export const GalaxySection = {
   name: "GalaxySection",
   props: {
@@ -8,18 +10,21 @@ export const GalaxySection = {
     collapsible: { type: Boolean, default: true },
   },
   data() { return { open: this.defaultOpen } },
+  methods: {
+    tr(key, fallback = key) { return t(key, fallback) },
+  },
   template: `
     <section class="gx-card">
       <div class="gx-section__header" v-if="collapsible" role="button" tabindex="0"
         @click="open = !open" @keydown.enter="open = !open" @keydown.space.prevent="open = !open">
         <i class="bi" :class="icon"></i>
-        <span class="gx-section__title">{{ title }}</span>
+        <span class="gx-section__title">{{ tr(title, title) }}</span>
         <span v-if="count !== ''" class="gx-section__count">{{ count }}</span>
         <i class="bi bi-chevron-down gx-chevron" :class="{ open }"></i>
       </div>
       <div v-else class="gx-section__header">
         <i class="bi" :class="icon"></i>
-        <span class="gx-section__title">{{ title }}</span>
+        <span class="gx-section__title">{{ tr(title, title) }}</span>
         <span v-if="count !== ''" class="gx-section__count">{{ count }}</span>
       </div>
       <transition name="gx-collapse">
