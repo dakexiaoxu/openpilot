@@ -107,7 +107,10 @@ const TRANSLATIONS = {
     "Your driving": "你的驾驶", "This week": "本周", "Personal records": "个人纪录",
     "Recent drives": "最近驾驶", "device online": "设备在线", "device offline": "设备离线",
     duration: "时长", engaged: "已启用", kilometers: "公里", miles: "英里", "kph avg": "平均公里/小时",
-    "mph avg": "平均英里/小时", Refresh: "刷新", Storage: "存储", Software: "软件", Vitals: "设备状态",
+    "mph avg": "平均英里/小时",     Refresh: "刷新", Storage: "存储", Software: "软件", Vitals: "设备状态",
+    "{n} advanced settings hidden.": "已隐藏 {n} 项高级设置。",
+    "Want more advanced features or missing a few toggles? Enable Developer Mode whenever you're ready.": "想看更多高级功能或发现少了几个开关？需要时打开开发者模式即可。",
+    "Go to Developer Tab": "前往开发者分页",
   },
 }
 

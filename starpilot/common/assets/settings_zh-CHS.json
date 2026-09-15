@@ -599,5 +599,8 @@
   "Software": "软件",
   "Ignore this drive's statistics?": "忽略这次驾驶的统计？",
   "It will no longer affect local weekly totals, records, model usage, engagement, or attention streaks.": "它将不再计入本周合计、纪录、模型使用、启用率和注意力连续记录。",
-  "Model usage share": "模型使用占比"
+  "Model usage share": "模型使用占比",
+  "{n} advanced settings hidden.": "已隐藏 {n} 项高级设置。",
+  "Want more advanced features or missing a few toggles? Enable Developer Mode whenever you're ready.": "想看更多高级功能或发现少了几个开关？需要时打开开发者模式即可。",
+  "Go to Developer Tab": "前往开发者分页"
 }
