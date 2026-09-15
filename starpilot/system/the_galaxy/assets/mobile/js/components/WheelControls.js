@@ -2,6 +2,7 @@ import { api } from "../api.js"
 import { openControllerActionPicker } from "../../../components/tools/controller_action_picker.js"
 import { usePolling } from "../composables.js"
 import { GxNotice } from "./GxNotice.js"
+import { t } from "../i18n.js"
 
 const FAVORITE_SLOT_COUNT = 3
 
@@ -94,27 +95,28 @@ export const WheelControls = {
       if (!Number.isFinite(value)) return
       this.request("action", { slot: i, key, value })
     },
+    tr(key, fallback = key) { return t(key, fallback) },
     listenLabel(slot) {
-      if (!this.learningAt(slot)) return "Learn Button"
+      if (!this.learningAt(slot)) return t("Learn Button")
       const seconds = Math.max(0, Math.ceil(this.remainingSeconds))
-      return seconds > 0 ? `Listening (${seconds}s)` : "Listening..."
+      return seconds > 0 ? t("Listening ({n}s)").replace("{n}", String(seconds)) : t("Listening...")
     },
     deleteMapping(m) { this.request("delete", { id: m.id }) },
   },
   template: `
     <div>
       <div style="padding: var(--sp-3);">
-        <GxNotice v-if="!offroad" text="Mappings can only be changed while offroad. Mapped buttons continue working onroad." style="margin:0 0 var(--sp-2);" />
+        <GxNotice v-if="!offroad" :text="tr('Mappings can only be changed while offroad. Mapped buttons continue working onroad.')" style="margin:0 0 var(--sp-2);" />
         <GxNotice v-if="error" tone="danger" :text="error" style="margin:0 0 var(--sp-2);" />
-        <p v-if="!loading && !available && !mappings.length" style="color: var(--text-muted);">The wheel control service is starting.</p>
+        <p v-if="!loading && !available && !mappings.length" style="color: var(--text-muted);">{{ tr("The wheel control service is starting.") }}</p>
         <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-          <button type="button" class="gx-btn" :disabled="disabled() || !mappings.length" @click="request(testing ? 'test-stop' : 'test')">{{ testing ? 'Stop Testing' : 'Test Buttons' }}</button>
-          <button type="button" class="gx-btn gx-btn--danger" :disabled="disabled() || !mappings.length" @click="request('clear')">Clear All</button>
+          <button type="button" class="gx-btn" :disabled="disabled() || !mappings.length" @click="request(testing ? 'test-stop' : 'test')">{{ testing ? tr('Stop Testing') : tr('Test Buttons') }}</button>
+          <button type="button" class="gx-btn gx-btn--danger" :disabled="disabled() || !mappings.length" @click="request('clear')">{{ tr("Clear All") }}</button>
         </div>
         <div class="gx-row" style="margin-bottom:12px;">
           <div class="gx-row__info">
-            <span class="gx-row__label">Disconnect controllers when offroad</span>
-            <span class="gx-row__desc">After two minutes offroad, paired controllers disconnect to save battery and reconnect when the car starts. Bluetooth and audio-only devices stay connected.</span>
+            <span class="gx-row__label">{{ tr("Disconnect controllers when offroad") }}</span>
+            <span class="gx-row__desc">{{ tr("After two minutes offroad, paired controllers disconnect to save battery and reconnect when the car starts. Bluetooth and audio-only devices stay connected.") }}</span>
           </div>
           <label class="gx-switch">
             <input type="checkbox" :checked="disconnectControllersOffroad" :disabled="disabled()"
@@ -124,63 +126,63 @@ export const WheelControls = {
           </label>
         </div>
         <div v-if="testing && lastTested" style="margin-bottom:12px;">
-          <span class="gx-chip" :style="lastTested.mapped ? 'background:var(--success);' : 'background:var(--error);'">{{ lastTested.mapped ? 'Successful' : 'Not mapped' }}</span>
-          <p style="color:var(--text-muted); margin-top:6px;">{{ lastTested.event_name || ('Button ' + lastTested.event_code) }} on {{ lastTested.device_name || 'External input' }} {{ lastTested.mapped ? 'is mapped to slot ' + lastTested.slot : 'has no mapping' }}.</p>
+          <span class="gx-chip" :style="lastTested.mapped ? 'background:var(--success);' : 'background:var(--error);'">{{ lastTested.mapped ? tr('Successful') : tr('Not mapped') }}</span>
+          <p style="color:var(--text-muted); margin-top:6px;">{{ lastTested.event_name || (tr('Button') + ' ' + lastTested.event_code) }} {{ lastTested.mapped ? tr('is mapped to slot') + ' ' + lastTested.slot : tr('has no mapping') }} · {{ lastTested.device_name || tr('External input') }}</p>
         </div>
 
-        <h4 style="margin:12px 0 8px;">Connected input devices</h4>
-        <p style="color:var(--text-muted); margin:0 0 8px;">Favorite buttons are the default, with controller-only actions below. Only the selected gamepad controls Joystick Mode.</p>
+        <h4 style="margin:12px 0 8px;">{{ tr("Connected input devices") }}</h4>
+        <p style="color:var(--text-muted); margin:0 0 8px;">{{ tr("Favorite buttons are the default, with controller-only actions below. Only the selected gamepad controls Joystick Mode.") }}</p>
         <div v-if="devices.length" style="display:grid; gap:8px;">
           <div v-for="d in devices" :key="d.device_id" class="gx-row" style="flex-wrap:wrap;">
             <div class="gx-row__info">
               <span class="gx-row__label">{{ d.name }}</span>
-              <span class="gx-row__desc">{{ d.joystick_capable ? 'Buttons and joystick axes' : 'Buttons only' }}</span>
+              <span class="gx-row__desc">{{ d.joystick_capable ? tr('Buttons and joystick axes') : tr('Buttons only') }}</span>
             </div>
             <button v-if="d.joystick_capable" type="button" class="gx-btn gx-btn--tonal" :disabled="disabled()"
               @click="request('joystick', { device_id: d.device_id, enabled: !(d.device_id === joystickDevice) })">
-              {{ d.device_id === joystickDevice ? 'Enabled for Joystick Mode' : 'Enable for Joystick Mode' }}
+              {{ d.device_id === joystickDevice ? tr('Enabled for Joystick Mode') : tr('Enable for Joystick Mode') }}
             </button>
           </div>
         </div>
-        <p v-else style="color:var(--text-muted); margin:0;">Connect or pair a controller, macropad, or keyboard.</p>
+        <p v-else style="color:var(--text-muted); margin:0;">{{ tr("Connect or pair a controller, macropad, or keyboard.") }}</p>
 
-        <h4 style="margin:12px 0 8px;">On-screen Favorites</h4>
+        <h4 style="margin:12px 0 8px;">{{ tr("On-screen Favorites") }}</h4>
         <div style="display:grid; gap:8px;">
           <div v-for="(slot, i) in slots" :key="'fav'+i" class="gx-row" style="flex-wrap:wrap;">
             <div class="gx-row__info">
-              <span class="gx-row__label">Favorite #{{ i + 1 }}</span>
-              <span class="gx-row__desc">{{ configured(slot) ? (slot.label || slot.key) : 'Not configured' }}</span>
+              <span class="gx-row__label">{{ tr("Favorite") }} #{{ i + 1 }}</span>
+              <span class="gx-row__desc">{{ configured(slot) ? tr(slot.label || slot.key, slot.label || slot.key) : tr('Not configured') }}</span>
             </div>
             <button v-if="configured(slot)" type="button" class="gx-btn gx-btn--tonal" :disabled="disabled() || testing" @click="learn(i)">{{ listenLabel(i) }}</button>
             <span v-if="mappingsOf(i).length" class="gx-chip gx-chip--dev" v-for="m in mappingsOf(i)" :key="m.id || m.event_code" style="display:inline-flex; align-items:center; gap:4px;">{{ m.event_name || ('Button ' + m.event_code) }}<button type="button" class="gx-chip-x" :disabled="disabled() || testing" title="Remove mapping" @click="deleteMapping(m)"><i class="bi bi-x"></i></button></span>
           </div>
         </div>
-        <p v-if="!configured(slots[0]) && !configured(slots[1]) && !configured(slots[2])" style="color:var(--text-muted); margin:0;">Choose and enable these slots in Toggles to map buttons to them.</p>
+        <p v-if="!configured(slots[0]) && !configured(slots[1]) && !configured(slots[2])" style="color:var(--text-muted); margin:0;">{{ tr("Choose and enable these slots in Toggles to map buttons to them.") }}</p>
 
-        <h4 style="margin:16px 0 8px;">Controller-only Actions</h4>
-        <p style="color:var(--text-muted); margin:0 0 8px;">Ten additional actions for physical buttons. These never appear as on-screen Favorites.</p>
+        <h4 style="margin:16px 0 8px;">{{ tr("Controller-only Actions") }}</h4>
+        <p style="color:var(--text-muted); margin:0 0 8px;">{{ tr("Ten additional actions for physical buttons. These never appear as on-screen Favorites.") }}</p>
         <div style="display:grid; gap:8px; grid-template-columns:repeat(auto-fill,minmax(280px,1fr));">
           <div v-for="(slot, i) in controllerSlots" :key="'act'+i" class="gx-card" style="padding:var(--sp-3); display:grid; gap:8px; margin:0;">
             <div class="gx-row" style="border:none; padding:0; flex-wrap:wrap;">
               <div class="gx-row__info">
-                <span class="gx-row__label">Controller Action #{{ i + 1 }}</span>
-                <span class="gx-row__desc">{{ slot.enabled ? (slot.label || 'Configured') : 'Not configured' }}</span>
+                <span class="gx-row__label">{{ tr("Controller Action") }} #{{ i + 1 }}</span>
+                <span class="gx-row__desc">{{ slot.enabled ? tr(slot.label || 'Configured', slot.label || 'Configured') : tr('Not configured') }}</span>
               </div>
               <button type="button" class="gx-btn gx-btn--tonal" :disabled="!slot.enabled || disabled() || testing" @click="learn(actionSlotIndex(i))">{{ listenLabel(actionSlotIndex(i)) }}</button>
             </div>
             <button type="button" class="gx-btn gx-btn--tonal" style="white-space:normal; height:auto; min-height:44px;"
               :data-controller-action-slot="i" aria-haspopup="dialog" :disabled="disabled()" @click="chooseAction(i, $event)">
-              {{ optionByKey(slot.key)?.label || slot.label || slot.key || 'Not configured' }} · Choose action
+              {{ tr(optionByKey(slot.key)?.label || slot.label || slot.key || 'Not configured', optionByKey(slot.key)?.label || slot.label || slot.key || 'Not configured') }} · {{ tr("Choose action") }}
             </button>
             <div v-if="isSpeedSlot(slot)" class="gx-row" style="border:none; padding:0;">
               <div class="gx-row__info">
-                <span class="gx-row__label">Set speed ({{ speedUnit }})</span>
+                <span class="gx-row__label">{{ tr("Set speed") }} ({{ speedUnit }})</span>
               </div>
               <input class="gx-field" type="number" inputmode="decimal" style="min-width:90px;"
                 :min="speedMinimum" :max="speedMaximum" step="1"
                 :value="Number(slot.value ?? 30)" :disabled="disabled()" @change="onSpeedChange(i, $event)" />
             </div>
-            <div v-if="learningAt(actionSlotIndex(i))" style="color:var(--text-muted); font-size:var(--fs-sm);">Press one button on your controller, macropad, or keyboard.</div>
+            <div v-if="learningAt(actionSlotIndex(i))" style="color:var(--text-muted); font-size:var(--fs-sm);">{{ tr("Press one button on your controller, macropad, or keyboard.") }}</div>
             <div v-if="mappingsOf(actionSlotIndex(i)).length" style="display:flex; flex-wrap:wrap; gap:4px;">
               <span v-for="m in mappingsOf(actionSlotIndex(i))" :key="m.id || m.event_code" class="gx-chip gx-chip--dev" style="display:inline-flex; align-items:center; gap:4px;">{{ m.event_name || ('Button ' + m.event_code) }}<button type="button" class="gx-chip-x" :disabled="disabled() || testing" title="Remove mapping" @click="deleteMapping(m)"><i class="bi bi-x"></i></button></span>
             </div>

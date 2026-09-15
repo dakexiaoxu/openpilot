@@ -32,6 +32,7 @@ _POINT_SPEED = re.compile(r"^Vehicle speed in mph for curve point (\d+)\.?$")
 _POINT_ACCEL = re.compile(r"^Maximum acceleration in m/s² at curve point (\d+)\.?$")
 _POINT_LABEL_SPEED = re.compile(r"^Point (\d+) Speed$")
 _POINT_LABEL_ACCEL = re.compile(r"^Point (\d+) Max Accel$")
+_OFFSET_MPH = re.compile(r"^Speed Offset \((\d+)[–-](\d+) mph\)$")
 _OFFSET_KMH = re.compile(r"^Speed Offset \((\d+)[–-](\d+) km/h\)$")
 _OFFSET_DESC_MPH = re.compile(r"^How much to offset posted speed[- ]limits between ([0-9]+[–-][0-9]+) mph\.$")
 _OFFSET_DESC_KMH = re.compile(r"^How much to offset posted speed[- ]limits between ([0-9]+[–-][0-9]+) km/h\.$")
@@ -63,6 +64,13 @@ ZH_CHS = _load_map()
 
 
 def _pattern_translate(text: str) -> str | None:
+  try:
+    return _pattern_translate_inner(text)
+  except Exception:
+    return None
+
+
+def _pattern_translate_inner(text: str) -> str | None:
   m = _POINT_LABEL_SPEED.match(text)
   if m:
     return f"第 {m.group(1)} 点车速"

@@ -130,12 +130,12 @@ export const Settings = {
       if (store.params.open) this.expanded = { ...this.expanded, [store.params.open]: true }
     },
     lockReason(param) {
-      if (param?.requires_offroad && this.values.IsOnroad) return "This setting can only be changed while parked."
-      if (param?.requires_parked && !this.values.VehicleParked && !(param.key === "ForceOffroad" && this.values.ForceOffroad)) return "This setting can only be changed while the vehicle is in Park."
-      if (param?.disabled_when_key_true && this.values[param.disabled_when_key_true]) return param.disabled_reason || "Disabled by another setting."
+      if (param?.requires_offroad && this.values.IsOnroad) return t("This setting can only be changed while parked.")
+      if (param?.requires_parked && !this.values.VehicleParked && !(param.key === "ForceOffroad" && this.values.ForceOffroad)) return t("This setting can only be changed while the vehicle is in Park.")
+      if (param?.disabled_when_key_true && this.values[param.disabled_when_key_true]) return t(param.disabled_reason || "Disabled by another setting.")
       if (param?.requires_nonempty_key) {
         const val = this.values[param.requires_nonempty_key]
-        if (!val || val === "{}" || val === "") return param.disabled_reason || "Required configuration missing."
+        if (!val || val === "{}" || val === "") return t(param.disabled_reason || "Required configuration missing.")
       }
       return ""
     },

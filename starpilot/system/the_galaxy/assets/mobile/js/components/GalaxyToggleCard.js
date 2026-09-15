@@ -175,7 +175,16 @@ export const GalaxyToggleCard = {
       this.optionsLoaded = true
       this.endpointLoading = true
       api.getOptions(this.param.options_endpoint)
-        .then((opts) => { this.endpointOptions = opts })
+        .then((opts) => {
+          this.endpointOptions = (Array.isArray(opts) ? opts : []).map((opt) => {
+            if (!opt || typeof opt !== "object") return typeof opt === "string" ? { value: opt, label: t(opt, opt) } : opt
+            return {
+              ...opt,
+              label: typeof opt.label === "string" ? t(opt.label, opt.label) : opt.label,
+              description: typeof opt.description === "string" ? t(opt.description, opt.description) : opt.description,
+            }
+          })
+        })
         .catch(() => { this.endpointOptions = [] })
         .finally(() => { this.endpointLoading = false })
     },
