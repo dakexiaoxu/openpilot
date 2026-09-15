@@ -231,6 +231,24 @@ const MORE_TRANSLATIONS = {
     Successful: "成功",
     "Not mapped": "未映射",
     "External input": "外部输入",
+    "Longitudinal control mode": "纵向控制模式",
+    Unavailable: "不可用",
+    Chill: "舒适",
+    Experimental: "实验",
+    "Conditional Experimental": "条件实验",
+    "Conditional Chill": "条件舒适",
+    "Speed control state unavailable.": "车速控制状态不可用。",
+    "Speed control update in progress.": "正在更新车速控制。",
+    "Chill: conventional speed control. Experimental: model-controlled gas and brakes. Conditional Experimental: Chill, switching to Experimental under your chosen conditions. Conditional Chill: Experimental, switching to Chill for simple cruising.": "舒适：传统车速控制。实验：由模型控制油门和刹车。条件实验：默认舒适，在你设定的条件下切到实验。条件舒适：默认实验，简单巡航时切到舒适。",
+    "Driving personalities": "驾驶风格",
+    "Driving Personalities": "驾驶风格",
+    "Acceleration, braking and following for each driving style.": "每种驾驶风格的加速、制动和跟车。",
+    "Custom personalities": "自定义驾驶风格",
+    "Loading profiles…": "正在加载风格配置…",
+    Acceleration: "加速",
+    Braking: "制动",
+    Following: "跟车",
+    "Traffic Mode": "拥堵模式",
   },
 }
 
@@ -428,7 +446,7 @@ export function t(key, fallback = key) {
 }
 
 export function loadCatalogTranslations() {
-  return fetch("/assets/components/tools/settings_zh-CHS.json?v=zh-5", { cache: "no-store" })
+  return fetch("/assets/components/tools/settings_zh-CHS.json?v=zh-6", { cache: "no-store" })
     .then((res) => (res.ok ? res.json() : {}))
     .then((map) => {
       if (map && typeof map === "object") Object.assign(TRANSLATIONS["zh-CHS"], map)

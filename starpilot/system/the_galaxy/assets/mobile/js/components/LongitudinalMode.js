@@ -1,6 +1,7 @@
 import { LONGITUDINAL_MODE_KEY, LONGITUDINAL_MODES, validLongitudinalSnapshot } from "/assets/components/tools/longitudinal_mode.mjs"
 import { SettingTree } from "./SettingTree.js"
 import { isSettingVisible } from "../params.js"
+import { t } from "../i18n.js"
 
 export const LongitudinalMode = {
   name: "LongitudinalMode",
@@ -10,14 +11,15 @@ export const LongitudinalMode = {
   data() { return { snapshot: null, pending: false, reading: false, expanded: {}, open: false, error: "", generation: 0, timer: null, disposed: false, modes: LONGITUDINAL_MODES } },
   computed: {
     mode() { return this.snapshot?.mode || "" },
-    label() { return this.modes.find(m => m.value === this.mode)?.label || "Unavailable" },
-    reason() { return this.snapshot?.locked ? this.snapshot.reason : this.snapshot ? "" : "Speed control state unavailable." },
+    label() { return t(this.modes.find(m => m.value === this.mode)?.label || "Unavailable") },
+    reason() { return this.snapshot?.locked ? t(this.snapshot.reason, this.snapshot.reason) : this.snapshot ? "" : t("Speed control state unavailable.") },
     locked() { return this.pending || !this.snapshot || this.snapshot.locked },
     conditional() { return this.mode === "conditional_experimental" || this.mode === "conditional_chill" },
     description() { return this.section.params.find(p => p.key === LONGITUDINAL_MODE_KEY)?.description || "" },
     children() { return this.section.params.filter(p => p.longitudinal_mode === this.mode && isSettingVisible(this.section, p, this.values)) },
   },
   methods: {
+    tr(key, fallback = key) { return t(key, fallback) },
     async request(init) {
       const response = await fetch("/api/longitudinal_mode", { cache: "no-store", ...init })
       const data = await response.json()
@@ -61,21 +63,21 @@ export const LongitudinalMode = {
     <div class="gx-tree-node gx-longitudinal-mode">
       <div class="gx-row gx-row--stack" :class="{ disabled: locked }">
         <div class="gx-row__info">
-          <label class="gx-row__label" for="gx-longitudinal-mode">Longitudinal control mode</label>
-          <span id="gx-longitudinal-description" class="gx-row__desc">{{ description }}</span>
+          <label class="gx-row__label" for="gx-longitudinal-mode">{{ tr("Longitudinal control mode") }}</label>
+          <span id="gx-longitudinal-description" class="gx-row__desc">{{ tr(description, description) }}</span>
           <span v-if="reason" class="gx-row__desc" role="status">{{ reason }}</span>
-          <span v-if="error" class="gx-row__desc" role="alert">{{ error }}</span>
+          <span v-if="error" class="gx-row__desc" role="alert">{{ tr(error, error) }}</span>
         </div>
         <div class="gx-mode-select">
           <div class="gx-field gx-mode-select__label" aria-hidden="true"><span>{{ label }}</span><i class="bi bi-chevron-down"></i></div>
           <select id="gx-longitudinal-mode" :value="mode" :disabled="locked" aria-describedby="gx-longitudinal-description" @change="select">
-            <option v-if="!snapshot" value="">Unavailable</option>
-            <option v-for="m in modes" :key="m.value" :value="m.value">{{ m.label }}</option>
+            <option v-if="!snapshot" value="">{{ tr("Unavailable") }}</option>
+            <option v-for="m in modes" :key="m.value" :value="m.value">{{ tr(m.label, m.label) }}</option>
           </select>
         </div>
       </div>
       <button v-if="conditional" type="button" class="gx-manage-btn" :aria-expanded="open" aria-controls="gx-longitudinal-children" @click="open = !open">
-        {{ open ? 'Close' : 'Manage' }}<i class="bi" aria-hidden="true" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+        {{ open ? tr('Close') : tr('Manage') }}<i class="bi" aria-hidden="true" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
       </button>
       <div v-if="conditional && open" id="gx-longitudinal-children" class="gx-tree-children">
         <SettingTree :params="children" parent-key="LongitudinalControlMode" :depth="1" :values="values" :expanded="expanded" :lock-reason="childLock" @change="$emit('change', $event)" @manage="manage" />

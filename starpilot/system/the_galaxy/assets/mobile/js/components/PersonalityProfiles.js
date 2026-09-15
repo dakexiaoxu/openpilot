@@ -1,6 +1,7 @@
 import { api, showSnackbar } from "../api.js"
 import { numericBounds } from "../params.js"
 import { formatProfileSpeed, profileSpeedUnit, personalityProfileParamKey } from "../../../components/tools/personality_profiles.mjs"
+import { t } from "../i18n.js"
 
 const PROFILES = ["traffic", "aggressive", "standard", "relaxed"]
 const CATEGORIES = { acceleration: "Acceleration", braking: "Braking", following: "Following" }
@@ -39,6 +40,7 @@ export const PersonalityProfiles = {
     this.drag = null; this.drafts = {}; this.curveText = {}
   },
   methods: {
+    tr(key, fallback = key) { return t(key, fallback) },
     enabled(value) { return [true, 1, "1", "True", "true"].includes(value) },
     label(value) { return value.split("_").map(s => s === "plus" ? "+" : s === "legacy" ? "Previous" : s[0].toUpperCase() + s.slice(1)).join(" ").replace(" +", "+") },
     key: personalityProfileParamKey,
@@ -283,21 +285,21 @@ export const PersonalityProfiles = {
     },
   },
   template: `
-    <section class="gx-personalities" aria-label="Driving personalities">
+    <section class="gx-personalities" :aria-label="tr('Driving personalities')">
       <div class="gx-row gx-personalities__heading">
-        <div class="gx-row__info"><span class="gx-row__label">Driving Personalities</span><span class="gx-row__desc">Acceleration, braking and following for each driving style.</span></div>
+        <div class="gx-row__info"><span class="gx-row__label">{{ tr("Driving Personalities") }}</span><span class="gx-row__desc">{{ tr("Acceleration, braking and following for each driving style.") }}</span></div>
         <label class="gx-switch">
-          <input type="checkbox" aria-label="Custom personalities" :checked="enabled(values.CustomPersonalities)" :disabled="paramLocked('CustomPersonalities')" @change="toggle('CustomPersonalities', $event)" />
+          <input type="checkbox" :aria-label="tr('Custom personalities')" :checked="enabled(values.CustomPersonalities)" :disabled="paramLocked('CustomPersonalities')" @change="toggle('CustomPersonalities', $event)" />
           <span class="gx-switch__track"></span><span class="gx-switch__thumb"></span>
         </label>
       </div>
-      <button type="button" class="gx-manage-btn" :aria-expanded="expanded" aria-controls="gx-personality-settings" @click="expanded = !expanded">{{ expanded ? 'Close' : 'Manage' }}<i class="bi" :class="expanded ? 'bi-chevron-up' : 'bi-chevron-down'" aria-hidden="true"></i></button>
+      <button type="button" class="gx-manage-btn" :aria-expanded="expanded" aria-controls="gx-personality-settings" @click="expanded = !expanded">{{ expanded ? tr('Close') : tr('Manage') }}<i class="bi" :class="expanded ? 'bi-chevron-up' : 'bi-chevron-down'" aria-hidden="true"></i></button>
       <div id="gx-personality-settings" v-show="expanded">
       <p v-if="error" role="alert" class="gx-personalities__error">{{ error }}</p>
       <button v-if="error && !ready" type="button" class="gx-btn gx-btn--tonal" :disabled="busy || loadPending || contextPending" @click="load">Retry loading</button>
       <p v-if="notice" role="status">{{ notice }}</p>
       <p v-if="busy" role="status" class="gx-personalities__live">Saving…</p>
-      <p v-if="!data && !error" role="status">Loading profiles…</p>
+      <p v-if="!data && !error" role="status">{{ tr("Loading profiles…") }}</p>
       <template v-if="data">
         <p v-if="!roadStateKnown" role="note">Driving state is not confirmed. Editing is temporarily disabled.</p>
         <p v-else-if="isOnroad" role="note">Changes to the active profile can take effect immediately and alter acceleration, braking, or following behavior. Make adjustments only when it is safe, and stay ready to take control.</p>
@@ -308,13 +310,13 @@ export const PersonalityProfiles = {
         <p v-if="!enabled(values.CustomPersonalities)">Enable to configure profiles. Existing defaults remain active while off.</p>
         <div class="gx-personalities__grid">
           <article v-for="profile in PROFILES" :key="profile" class="gx-card gx-personalities__profile">
-            <div class="gx-personalities__toggle"><strong>{{ profile === 'traffic' ? 'Traffic Mode' : label(profile) }}</strong>
+            <div class="gx-personalities__toggle"><strong>{{ tr(profile === 'traffic' ? 'Traffic Mode' : label(profile), profile === 'traffic' ? 'Traffic Mode' : label(profile)) }}</strong>
               <label class="gx-switch"><input type="checkbox" :aria-label="label(profile) + ' profile'" :checked="enabled(values[key(profile)])" :disabled="paramLocked(key(profile))" @change="toggle(key(profile), $event)" /><span class="gx-switch__track"></span><span class="gx-switch__thumb"></span></label>
             </div>
             <p v-if="!enabled(values[key(profile)])">Turn on to configure this profile.</p>
             <template v-else>
               <section v-for="(title, category) in CATEGORIES" :key="category" class="gx-personalities__category">
-                <h4>{{ title }}</h4>
+                <h4>{{ tr(title, title) }}</h4>
                 <div class="gx-personalities__options" role="group" :aria-label="label(profile) + ' ' + title">
                   <button v-for="option in options(category, profile)" :key="option" type="button" class="gx-btn gx-btn--tonal"
                     :aria-pressed="data.profiles[profile][category].preset === option" :disabled="editingLocked"
