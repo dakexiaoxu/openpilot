@@ -75,10 +75,14 @@ function agnos_init {
   printf '1' | sudo tee /data/params/d/NNFF >/dev/null
   printf '0' | sudo tee /data/params/d/NNFFLite >/dev/null
   printf '1' | sudo tee /data/params/d/LateralTune >/dev/null
-  # Keep stock ACC/Front Assist on this Jetta CAN tap. Official StarPilot only
-  # intercepts ACC when Alpha Long is on; that faults 前部辅助系统.
-  printf '0' | sudo tee /data/params/d/AlphaLongitudinalEnabled >/dev/null
-  printf '1' | sudo tee /data/params/d/DisableOpenpilotLongitudinal >/dev/null
+  # Same as Carrot/StarPilot/FrogPilot: do not overwrite the user's longitudinal
+  # mode. Missing file only — Alpha Long on, stock ACC when the toggle is off.
+  if [ ! -s /data/params/d/AlphaLongitudinalEnabled ]; then
+    printf '1' | sudo tee /data/params/d/AlphaLongitudinalEnabled >/dev/null
+  fi
+  if [ ! -s /data/params/d/DisableOpenpilotLongitudinal ]; then
+    printf '0' | sudo tee /data/params/d/DisableOpenpilotLongitudinal >/dev/null
+  fi
   if [ ! -s /data/params/d/DrivingModel ]; then
     printf '%s' 'rdf43' | sudo tee /data/params/d/DrivingModel >/dev/null
     printf '%s' 'rdf43' | sudo tee /data/params/d/Model >/dev/null

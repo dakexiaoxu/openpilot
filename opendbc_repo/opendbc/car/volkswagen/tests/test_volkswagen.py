@@ -89,12 +89,19 @@ class TestVolkswagenPlatformConfigs:
     # Vehicle CAN tap, no camera connector: ACC/TSK stay on panda bus 0.
     fingerprint = {bus: {} for bus in range(8)}
     fingerprint[1][0x40] = 8
-    cp = CarInterface.get_params(CAR.VOLKSWAGEN_JETTA_MK7, fingerprint, [], True, False, False, None)
-    assert cp.networkLocation == CarParams.NetworkLocation.fwdCamera
-    assert not cp.alphaLongitudinalAvailable
-    assert not cp.openpilotLongitudinalControl
-    assert cp.pcmCruise
-    assert not (cp.safetyConfigs[-1].safetyParam & VolkswagenSafetyFlags.LONG_CONTROL)
+    stock = CarInterface.get_params(CAR.VOLKSWAGEN_JETTA_MK7, fingerprint, [], False, False, False, None)
+    assert stock.networkLocation == CarParams.NetworkLocation.fwdCamera
+    assert stock.alphaLongitudinalAvailable
+    assert not stock.openpilotLongitudinalControl
+    assert stock.pcmCruise
+    assert not (stock.safetyConfigs[-1].safetyParam & VolkswagenSafetyFlags.LONG_CONTROL)
+
+    op_long = CarInterface.get_params(CAR.VOLKSWAGEN_JETTA_MK7, fingerprint, [], True, False, False, None)
+    assert op_long.networkLocation == CarParams.NetworkLocation.fwdCamera
+    assert op_long.alphaLongitudinalAvailable
+    assert op_long.openpilotLongitudinalControl
+    assert not op_long.pcmCruise
+    assert op_long.safetyConfigs[-1].safetyParam & VolkswagenSafetyFlags.LONG_CONTROL
 
   @pytest.mark.parametrize("data_hex", (
     "fc03fcfcfc0f0000",
