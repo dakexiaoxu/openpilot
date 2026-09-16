@@ -202,7 +202,15 @@ class Multilang:
     self.setup()
 
   def tr(self, text: str) -> str:
-    return self._translations.get(text, text) or text
+    found = self._translations.get(text)
+    if found:
+      return found
+    stripped = text.strip() if isinstance(text, str) else text
+    if stripped != text:
+      found = self._translations.get(stripped)
+      if found:
+        return found
+    return text or ""
 
   def trn(self, singular: str, plural: str, n: int) -> str:
     if singular in self._plurals:

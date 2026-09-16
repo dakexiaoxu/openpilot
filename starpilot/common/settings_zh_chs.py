@@ -8,7 +8,10 @@ import re
 from pathlib import Path
 from typing import Any
 
-_MAP_PATH = Path(__file__).resolve().parent / "assets" / "settings_zh-CHS.json"
+_MAP_PATHS = (
+  Path(__file__).resolve().parent / "assets" / "settings_zh-CHS.json",
+  Path(__file__).resolve().parent / "assets" / "settings_zh-CHS_more.json",
+)
 
 _STRING_KEYS = (
   "name",
@@ -50,13 +53,14 @@ _NAV_EXTRA = {
 
 
 def _load_map() -> dict[str, str]:
-  try:
-    data = json.loads(_MAP_PATH.read_text(encoding="utf-8"))
-  except (OSError, json.JSONDecodeError, TypeError):
-    return {}
-  if not isinstance(data, dict):
-    return {}
-  merged = {str(k): str(v) for k, v in data.items() if k and v}
+  merged: dict[str, str] = {}
+  for path in _MAP_PATHS:
+    try:
+      data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, TypeError):
+      continue
+    if isinstance(data, dict):
+      merged.update({str(k): str(v) for k, v in data.items() if k and v})
   merged.update(_NAV_EXTRA)
   return merged
 
@@ -132,7 +136,7 @@ def _pattern_translate_inner(text: str) -> str | None:
 def translate_text(value: Any) -> Any:
   if not isinstance(value, str) or not value.strip():
     return value
-  candidates = (value, value.replace('\\"', '"'), value.replace('\\\\', '\\'))
+  candidates = (value, value.strip(), value.replace('\\"', '"'), value.replace('\\\\', '\\'))
   for candidate in candidates:
     found = ZH_CHS.get(candidate)
     if found:

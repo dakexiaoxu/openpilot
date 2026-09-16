@@ -111,6 +111,15 @@ const TRANSLATIONS = {
     "{n} advanced settings hidden.": "已隐藏 {n} 项高级设置。",
     "Want more advanced features or missing a few toggles? Enable Developer Mode whenever you're ready.": "想看更多高级功能或发现少了几个开关？需要时打开开发者模式即可。",
     "Go to Developer Tab": "前往开发者分页",
+    Mon: "周一", Tue: "周二", Wed: "周三", Thu: "周四", Fri: "周五", Sat: "周六", Sun: "周日",
+    "Unknown model": "未知模型", analyzing: "分析中", speed: "车速",
+    "Toyota Security Keys": "丰田安全密钥",
+    "Vision Adjacent Spot Monitoring (V-ASM)": "视觉相邻点位监控（V-ASM）",
+    "PiP Side Camera Preview": "画中画侧视摄像头预览",
+    "Lock/Unlock Doors": "车门锁/解锁",
+    "Driving Controls": "驾驶控制",
+    "START NAVIGATION": "开始导航",
+    "Add favorites in Navigation": "请在导航中添加收藏",
   },
 }
 
@@ -170,6 +179,8 @@ const MORE_TRANSLATIONS = {
     "Lane Changes": "变道", "Allow openpilot to change lanes.": "允许 openpilot 变道。", "Lateral Tuning": "横向调校",
     "Miscellaneous steering control changes to fine-tune how openpilot drives.": "用于精细调整 openpilot 驾驶方式的其他转向控制设置。",
     "Quality of Life": "使用体验", "Steering control changes to fine-tune how openpilot drives.": "用于精细调整 openpilot 驾驶方式的转向控制设置。",
+    "Driving Controls": "驾驶控制",
+    "Navigation & Maps": "导航和地图",
     "Enable V-ASM": "启用 V-ASM",
     Routes: "路线", Route: "路线", Selected: "已选择", Recommended: "推荐", Alternative: "备选", Select: "选择", "Choose a route": "选择路线",
     "Pair devices, controllers, & audio": "配对设备、手柄和音频",
@@ -455,7 +466,7 @@ export function t(key, fallback = key) {
 }
 
 export function loadCatalogTranslations() {
-  return fetch("/assets/components/tools/settings_zh-CHS.json?v=zh-6", { cache: "no-store" })
+  return fetch("/assets/components/tools/settings_zh-CHS.json?v=zh-8", { cache: "no-store" })
     .then((res) => (res.ok ? res.json() : {}))
     .then((map) => {
       if (map && typeof map === "object") Object.assign(TRANSLATIONS["zh-CHS"], map)
