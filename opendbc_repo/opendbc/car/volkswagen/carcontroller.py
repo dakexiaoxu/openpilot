@@ -107,10 +107,10 @@ class CarController(CarControllerBase):
 
         self.eps_timer_soft_disable_alert = self.hca_frame_timer_running > self.CCP.STEER_TIME_ALERT / DT_CTRL
         self.apply_torque_last = apply_torque
-        # Gateway splice shares the J533 CAN with stock camera/radar traffic.
-        # Do not spam disabled HCA onto that live bus; a camera harness would intercept.
+        # Gateway splice: stock camera already sends HCA on this CAN. Any OP HCA
+        # (even when enabled) faults EPS → LKAS Fault.
         jetta_can_tap = self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7
-        if not jetta_can_tap or hca_enabled:
+        if not jetta_can_tap:
           can_sends.append(self.CCS.create_steering_control(self.packer_pt, self.CAN.pt, apply_torque, hca_enabled))
 
       if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
@@ -186,7 +186,9 @@ class CarController(CarControllerBase):
     # **** Stock ACC Button Controls **************************************** #
 
     # Same as firestar5683/StarPilot: only spoof GRA when using stock ACC.
-    gra_send_ready = self.CP.pcmCruise and CS.gra_stock_values.get("COUNTER") != self.gra_acc_counter_last
+    # Jetta splice: do not TX GRA_ACC_01 onto the live stalk CAN (Cruise Fault).
+    gra_send_ready = (self.CP.pcmCruise and self.CP.carFingerprint != CAR.VOLKSWAGEN_JETTA_MK7
+                      and CS.gra_stock_values.get("COUNTER") != self.gra_acc_counter_last)
     if gra_send_ready and (CC.cruiseControl.cancel or CC.cruiseControl.resume):
       can_sends.append(self.CCS.create_acc_buttons_control(self.packer_pt, self.CAN.ext, CS.gra_stock_values,
                                                            cancel=CC.cruiseControl.cancel, resume=CC.cruiseControl.resume))

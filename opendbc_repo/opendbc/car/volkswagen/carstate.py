@@ -424,6 +424,10 @@ class CarState(CarStateBase):
     return
 
   def update_hca_state(self, hca_status, drive_mode=True):
+    # Jetta splice does not command HCA; stock camera owns LKAS. EPS FAULT/DISABLED
+    # from that shared CAN must not raise LKAS Fault on C3.
+    if self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
+      return False, False
     # Treat FAULT as temporary for worst likely EPS recovery time, for cars without factory Lane Assist
     # DISABLED means the EPS hasn't been configured to support Lane Assist
     self.eps_init_complete = self.eps_init_complete or (hca_status in ("DISABLED", "READY", "ACTIVE") or self.frame > 600)
