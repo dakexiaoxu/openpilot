@@ -181,7 +181,11 @@ class CarController(CarControllerBase):
 
     # **** Stock ACC Button Controls **************************************** #
 
-    gra_send_ready = self.CP.pcmCruise and CS.gra_stock_values["COUNTER"] != self.gra_acc_counter_last
+    # Resume-after-brake (ActivateCruiseAfterBrake) sets CC.cruiseControl.resume.
+    # On this Jetta CAN tap, stock ACC must stay in the loop: send GRA resume/cancel
+    # even if the Alpha Long toggle is on. Panda LONG_CONTROL is not used here.
+    gra_counter = CS.gra_stock_values.get("COUNTER") if CS.gra_stock_values else None
+    gra_send_ready = gra_counter is not None and gra_counter != self.gra_acc_counter_last
     if gra_send_ready and (CC.cruiseControl.cancel or CC.cruiseControl.resume):
       can_sends.append(self.CCS.create_acc_buttons_control(self.packer_pt, self.CAN.ext, CS.gra_stock_values,
                                                            cancel=CC.cruiseControl.cancel, resume=CC.cruiseControl.resume))
@@ -194,6 +198,7 @@ class CarController(CarControllerBase):
       new_actuators.accel = self.accel_last
 
     self.lead_distance_bars_last = hud_control.leadDistanceBars
-    self.gra_acc_counter_last = CS.gra_stock_values["COUNTER"]
+    if gra_counter is not None:
+      self.gra_acc_counter_last = gra_counter
     self.frame += 1
     return new_actuators, can_sends
