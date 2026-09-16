@@ -36,10 +36,10 @@ void PandaSafety::updateMultiplexingMode() {
     if (!initialized_) {
       prev_obd_multiplexing_ = false;
       for (int i = 0; i < pandas_.size(); ++i) {
-        pandas_[i]->set_safety_model(cereal::CarParams::SafetyModel::NO_OUTPUT, 0U);
+        pandas_[i]->set_safety_model(cereal::CarParams::SafetyModel::SILENT, 0U);
       }
       initialized_ = true;
-      LOGW("Skipping ELM327 fingerprint safety; using noOutput");
+      LOGW("Skipping ELM327 fingerprint safety; using silent");
     }
     return;
   }

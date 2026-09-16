@@ -151,12 +151,11 @@ class CarInterface(CarInterfaceBase):
     ret.safetyConfigs = safety_configs
 
     if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
-      # Carrot/Lane assume a camera/gateway intercept harness. This Jetta is a
-      # J533 splice: volkswagen safety TX of HCA/LDW on the live CAN faults TSK
-      # (Cruise Fault). Listen-only until a real intercept harness is fitted.
+      # J533 splice: silent (no ACK) so stock Front Assist / LKAS stay alive.
+      # noOutput still ACKs and faults TSK. OP steer needs an intercept harness.
       ret.openpilotLongitudinalControl = False
       ret.alphaLongitudinalAvailable = False
       ret.pcmCruise = True
-      ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.noOutput)]
+      ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.silent)]
 
     return ret

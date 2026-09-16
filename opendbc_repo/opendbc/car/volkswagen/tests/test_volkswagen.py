@@ -94,12 +94,12 @@ class TestVolkswagenPlatformConfigs:
     assert not stock.alphaLongitudinalAvailable
     assert not stock.openpilotLongitudinalControl
     assert stock.pcmCruise
-    assert stock.safetyConfigs[-1].safetyModel == CarParams.SafetyModel.noOutput
+    assert stock.safetyConfigs[-1].safetyModel == CarParams.SafetyModel.silent
 
     op_long = CarInterface.get_params(CAR.VOLKSWAGEN_JETTA_MK7, fingerprint, [], True, False, False, None)
     assert not op_long.openpilotLongitudinalControl
     assert op_long.pcmCruise
-    assert op_long.safetyConfigs[-1].safetyModel == CarParams.SafetyModel.noOutput
+    assert op_long.safetyConfigs[-1].safetyModel == CarParams.SafetyModel.silent
 
   @pytest.mark.parametrize("data_hex", (
     "fc03fcfcfc0f0000",

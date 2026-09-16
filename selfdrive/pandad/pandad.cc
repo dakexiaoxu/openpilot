@@ -5,6 +5,7 @@
 #include <bitset>
 #include <cassert>
 #include <cerrno>
+#include <cstdlib>
 #include <memory>
 #include <thread>
 #include <utility>
@@ -44,6 +45,16 @@
 ExitHandler do_exit;
 
 static uint64_t last_door_lock_command_time = 0;
+
+static bool keep_panda_silent() {
+  // Jetta J533 splice: noOutput still ACKs on the live CAN and faults Front Assist / LKAS.
+  // SILENT keeps the intercept relay closed and puts the CAN controllers in listen-only.
+  const char *skip = std::getenv("SKIP_FW_QUERY");
+  if (skip != nullptr && skip[0] != '\0' && skip[0] != '0') {
+    return true;
+  }
+  return Params().get("CarModel") == "VOLKSWAGEN_JETTA_MK7";
+}
 
 static bool is_tesla_preap(const std::string &car_params) {
   if (car_params.empty()) {
@@ -276,12 +287,17 @@ std::optional<bool> send_panda_states(PubMaster *pm, const std::vector<Panda *> 
     pandaStates.push_back(health);
   }
 
+  const bool silent_splice = keep_panda_silent();
   for (uint32_t i = 0; i < pandas_cnt; i++) {
     auto panda = pandas[i];
     const auto &health = pandaStates[i];
 
     // Make sure CAN buses are live: safety_setter_thread does not work if Panda CAN are silent and there is only one other CAN node
-    if (health.safety_mode_pkt == (uint8_t)(cereal::CarParams::SafetyModel::SILENT)) {
+    if (silent_splice) {
+      if (health.safety_mode_pkt != (uint8_t)(cereal::CarParams::SafetyModel::SILENT)) {
+        panda->set_safety_model(cereal::CarParams::SafetyModel::SILENT);
+      }
+    } else if (health.safety_mode_pkt == (uint8_t)(cereal::CarParams::SafetyModel::SILENT)) {
       panda->set_safety_model(cereal::CarParams::SafetyModel::NO_OUTPUT);
     }
 
@@ -292,7 +308,8 @@ std::optional<bool> send_panda_states(PubMaster *pm, const std::vector<Panda *> 
 
     // set safety mode to NO_OUTPUT when car is off or we're not onroad. ELM327 is an alternative if we want to leverage athenad/connect
     bool should_close_relay = (!ignition_local || !is_onroad) && (nanos_since_boot() - last_door_lock_command_time >= 2e9);
-    if (should_close_relay && (health.safety_mode_pkt != (uint8_t)(cereal::CarParams::SafetyModel::NO_OUTPUT))) {
+    if (should_close_relay && !silent_splice &&
+        (health.safety_mode_pkt != (uint8_t)(cereal::CarParams::SafetyModel::NO_OUTPUT))) {
       panda->set_safety_model(cereal::CarParams::SafetyModel::NO_OUTPUT);
     }
 
