@@ -94,10 +94,11 @@ class CarInterface(CarInterfaceBase):
       else:
         ret.networkLocation = NetworkLocation.fwdCamera
 
-      # This Jetta C3 taps vehicle CAN only (no camera connector). All ACC/TSK
-      # traffic is on panda bus 0. NetworkLocation.fwdCamera is the single-bus
-      # routing name, not a camera harness. Gateway routing would look for ACC
-      # on bus 2, which is the unused camera port.
+      # Jetta C3 is spliced onto the factory J533 gateway CAN. Stock radar,
+      # lane keep, and side-assist are read through the gateway on panda bus 0.
+      # The camera CAN stays on the stock computer only — panda bus 2 is empty.
+      # Keep fwdCamera *routing* so ACC/TSK/SWA are parsed on bus 0. Official
+      # gateway routing would look for those frames on the unused camera port.
       if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
         ret.networkLocation = NetworkLocation.fwdCamera
 
@@ -130,8 +131,8 @@ class CarInterface(CarInterfaceBase):
       ret.longitudinalTuning.kiV = [0.4, 0.]
 
     ret.alphaLongitudinalAvailable = ret.networkLocation == NetworkLocation.gateway or docs
-    # Jetta CAN tap still routes ACC on bus 0 (fwdCamera), but Carrot/StarPilot/FrogPilot
-    # keep the Alpha Long toggle so stock ACC and OP long are both selectable.
+    # Gateway splice still uses bus-0 routing above, but this is a gateway install:
+    # keep the Alpha Long toggle like Carrot/StarPilot/FrogPilot.
     if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
       ret.alphaLongitudinalAvailable = True
     if alpha_long and (not ret.flags & VolkswagenFlags.MEB or ret.alphaLongitudinalAvailable):

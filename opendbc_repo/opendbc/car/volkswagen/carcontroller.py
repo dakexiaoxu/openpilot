@@ -107,8 +107,8 @@ class CarController(CarControllerBase):
 
         self.eps_timer_soft_disable_alert = self.hca_frame_timer_running > self.CCP.STEER_TIME_ALERT / DT_CTRL
         self.apply_torque_last = apply_torque
-        # Single-bus Jetta CAN tap: do not spam disabled HCA onto the live ACC/Front
-        # Assist CAN. Official camera harness intercepts HCA; a tap would collide.
+        # Gateway splice shares the J533 CAN with stock camera/radar traffic.
+        # Do not spam disabled HCA onto that live bus; a camera harness would intercept.
         jetta_can_tap = self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7
         if not jetta_can_tap or hca_enabled:
           can_sends.append(self.CCS.create_steering_control(self.packer_pt, self.CAN.pt, apply_torque, hca_enabled))

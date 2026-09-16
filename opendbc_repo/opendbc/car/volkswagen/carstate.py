@@ -140,7 +140,11 @@ class CarState(CarStateBase):
       ret.cruiseState.speed = 0
 
     self.eps_stock_values = pt_cp.vl["LH_EPS_03"]
-    self.ldw_stock_values = cam_cp.vl["LDW_02"] if self.CP.networkLocation == NetworkLocation.fwdCamera else {}
+    if self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
+      # Camera CAN is not on C3; LDW is gateway-forwarded onto vehicle CAN.
+      self.ldw_stock_values = pt_cp.vl["LDW_02"]
+    else:
+      self.ldw_stock_values = cam_cp.vl["LDW_02"] if self.CP.networkLocation == NetworkLocation.fwdCamera else {}
     self.gra_stock_values = pt_cp.vl["GRA_ACC_01"]
 
     ret.buttonEvents = self.create_button_events(pt_cp, self.CCP.BUTTONS)
@@ -465,16 +469,13 @@ class CarState(CarStateBase):
       pt_messages.append(("Motor_EV_01", 10))
 
     cam_messages = []
-    # This Jetta taps vehicle CAN only (no camera connector). Required camera-bus
-    # frames (LDW_02 at 10Hz) never arrive, CANParser drops canValid, and the UI
-    # shows the relabeled canError "Unknown Vehicle Variant" every second.
+    # Gateway CAN splice: radar/ACC/BSM/LDW arrive on panda bus 0 via J533.
+    # Do not require 10Hz LDW_02 on the unused camera port (bus 2).
     if CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
-      pt_messages += [
-        ("ACC_06", math.nan),
-        ("ACC_10", math.nan),
-        ("ACC_02", math.nan),
-        ("SWA_01", math.nan),
-      ]
+      pt_messages += MqbExtraSignals.fwd_radar_messages
+      if CP.enableBsm:
+        pt_messages += MqbExtraSignals.bsm_radar_messages
+      pt_messages += [("LDW_02", math.nan)]
       cam_messages += [
         ("LDW_02", math.nan),
         ("HCA_01", math.nan),
