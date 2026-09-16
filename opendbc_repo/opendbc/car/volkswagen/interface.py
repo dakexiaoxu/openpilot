@@ -150,12 +150,4 @@ class CarInterface(CarInterfaceBase):
       safety_configs.insert(0, get_safety_config(structs.CarParams.SafetyModel.noOutput))
     ret.safetyConfigs = safety_configs
 
-    if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
-      # J533 splice: silent (no ACK) so stock Front Assist / LKAS stay alive.
-      # noOutput still ACKs and faults TSK. OP steer needs an intercept harness.
-      ret.openpilotLongitudinalControl = False
-      ret.alphaLongitudinalAvailable = False
-      ret.pcmCruise = True
-      ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.silent)]
-
     return ret

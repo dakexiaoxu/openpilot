@@ -131,9 +131,7 @@ class CarState(CarStateBase):
         ret.cruiseState.speed = acc_src.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS
       else:
         ret.cruiseState.speed = 0
-      # Listen-only splice: do not map latched TSK 6/7 onto C3 as Cruise Fault.
-      # Stock Front Assist still shows on the cluster until the car is ignition-cycled.
-      ret.accFaulted = False if self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7 else pt_cp.vl["TSK_06"]["TSK_Status"] in (6, 7)
+      ret.accFaulted = pt_cp.vl["TSK_06"]["TSK_Status"] in (6, 7)
 
       ret.leftBlinker = bool(pt_cp.vl["Blinkmodi_02"]["Comfort_Signal_Left"])
       ret.rightBlinker = bool(pt_cp.vl["Blinkmodi_02"]["Comfort_Signal_Right"])
@@ -420,11 +418,6 @@ class CarState(CarStateBase):
 
     hca_status = self.CCP.hca_status_values.get(pt_cp.vl["LH_EPS_03"]["EPS_HCA_Status"])
     ret.steerFaultTemporary, ret.steerFaultPermanent = self.update_hca_state(hca_status, drive_mode)
-    if self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
-      # Listen-only splice: leftover EPS HCA FAULT after a prior TX session
-      # must not latch LKAS Fault on C3.
-      ret.steerFaultTemporary = False
-      ret.steerFaultPermanent = False
     return
 
   def update_hca_state(self, hca_status, drive_mode=True):

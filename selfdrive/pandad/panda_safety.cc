@@ -2,18 +2,6 @@
 #include "cereal/messaging/messaging.h"
 #include "common/swaglog.h"
 
-#include <cstdlib>
-
-static bool skip_elm327_fingerprint(Params &params) {
-  // J533 splice / SKIP_FW_QUERY: ELM327 opens the intercept path and faults VW TSK
-  // (Cruise Fault / Front Assist unavailable) before CarParams noOutput is applied.
-  const char *skip = std::getenv("SKIP_FW_QUERY");
-  if (skip != nullptr && skip[0] != '\0' && skip[0] != '0') {
-    return true;
-  }
-  return params.get("CarModel") == "VOLKSWAGEN_JETTA_MK7";
-}
-
 void PandaSafety::configureSafetyMode(bool is_onroad) {
   if (is_onroad && !safety_configured_) {
     updateMultiplexingMode();
@@ -32,18 +20,6 @@ void PandaSafety::configureSafetyMode(bool is_onroad) {
 }
 
 void PandaSafety::updateMultiplexingMode() {
-  if (skip_elm327_fingerprint(params_)) {
-    if (!initialized_) {
-      prev_obd_multiplexing_ = false;
-      for (int i = 0; i < pandas_.size(); ++i) {
-        pandas_[i]->set_safety_model(cereal::CarParams::SafetyModel::SILENT, 0U);
-      }
-      initialized_ = true;
-      LOGW("Skipping ELM327 fingerprint safety; using silent");
-    }
-    return;
-  }
-
   // Initialize to ELM327 without OBD multiplexing for initial fingerprinting
   if (!initialized_) {
     prev_obd_multiplexing_ = false;
