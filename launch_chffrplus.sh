@@ -75,13 +75,9 @@ function agnos_init {
   printf '1' | sudo tee /data/params/d/NNFF >/dev/null
   printf '0' | sudo tee /data/params/d/NNFFLite >/dev/null
   printf '1' | sudo tee /data/params/d/LateralTune >/dev/null
-  # Same as Carrot/Lane: do not overwrite Alpha Long. Missing file only.
-  if [ ! -s /data/params/d/AlphaLongitudinalEnabled ]; then
-    printf '0' | sudo tee /data/params/d/AlphaLongitudinalEnabled >/dev/null
-  fi
-  if [ ! -s /data/params/d/DisableOpenpilotLongitudinal ]; then
-    printf '0' | sudo tee /data/params/d/DisableOpenpilotLongitudinal >/dev/null
-  fi
+  # Carrot: Alpha Long on so OP can control without stock ACC (TSK 6/7 on this splice).
+  printf '1' | sudo tee /data/params/d/AlphaLongitudinalEnabled >/dev/null
+  printf '0' | sudo tee /data/params/d/DisableOpenpilotLongitudinal >/dev/null
   if [ ! -s /data/params/d/DrivingModel ]; then
     printf '%s' 'rdf43' | sudo tee /data/params/d/DrivingModel >/dev/null
     printf '%s' 'rdf43' | sudo tee /data/params/d/Model >/dev/null

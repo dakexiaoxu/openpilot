@@ -94,7 +94,7 @@ class CarInterface(CarInterfaceBase):
       else:
         ret.networkLocation = NetworkLocation.fwdCamera
 
-      if 0x126 in fingerprint[2] and candidate != CAR.VOLKSWAGEN_JETTA_MK7:  # HCA_01
+      if 0x126 in fingerprint[2]:  # HCA_01
         ret.flags |= VolkswagenFlags.STOCK_HCA_PRESENT.value
       if 0x6B8 in fingerprint[0]:  # Kombi_03
         ret.flags |= VolkswagenFlags.KOMBI_PRESENT.value
