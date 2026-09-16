@@ -102,22 +102,35 @@ class CarState(CarStateBase):
                           pt_cp.vl["Gateway_72"]["ZV_HBFS_offen"],
                           pt_cp.vl["Gateway_72"]["ZV_HD_offen"]])
 
-      if self.CP.enableBsm:
-        # Infostufe: BSM LED on, Warnung: BSM LED flashing
-        ret.leftBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_li"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_li"])
-        ret.rightBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_re"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_re"])
+      # Jetta gateway splice has no ACC_02/06/10 or SWA_01 on panda. Do not
+      # touch vl[] for those names — this fork lazy-adds them as required and
+      # that is the Unknown Vehicle Variant (canError) alert.
+      if self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
+        ret.stockFcw = False
+        ret.stockAeb = False
+        self.acc_type = 0
+        acc_limiter_mode = False
+      else:
+        if self.CP.enableBsm:
+          # Infostufe: BSM LED on, Warnung: BSM LED flashing
+          ret.leftBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_li"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_li"])
+          ret.rightBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_re"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_re"])
 
-      ret.stockFcw = bool(ext_cp.vl["ACC_10"]["AWV2_Freigabe"])
-      ret.stockAeb = bool(ext_cp.vl["ACC_10"]["ANB_Teilbremsung_Freigabe"]) or bool(ext_cp.vl["ACC_10"]["ANB_Zielbremsung_Freigabe"])
+        ret.stockFcw = bool(ext_cp.vl["ACC_10"]["AWV2_Freigabe"])
+        ret.stockAeb = bool(ext_cp.vl["ACC_10"]["ANB_Teilbremsung_Freigabe"]) or bool(ext_cp.vl["ACC_10"]["ANB_Zielbremsung_Freigabe"])
 
-      self.acc_type = ext_cp.vl["ACC_06"]["ACC_Typ"]
+        self.acc_type = ext_cp.vl["ACC_06"]["ACC_Typ"]
+        acc_limiter_mode = ext_cp.vl["ACC_02"]["ACC_Gesetzte_Zeitluecke"] == 0
+
       self.esp_hold_confirmation = bool(pt_cp.vl["ESP_21"]["ESP_Haltebestaetigung"])
-      acc_limiter_mode = ext_cp.vl["ACC_02"]["ACC_Gesetzte_Zeitluecke"] == 0
       speed_limiter_mode = bool(pt_cp.vl["TSK_06"]["TSK_Limiter_ausgewaehlt"])
 
       ret.cruiseState.available = pt_cp.vl["TSK_06"]["TSK_Status"] in (2, 3, 4, 5)
       ret.cruiseState.enabled = pt_cp.vl["TSK_06"]["TSK_Status"] in (3, 4, 5)
-      ret.cruiseState.speed = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS if self.CP.pcmCruise else 0
+      if self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
+        ret.cruiseState.speed = 0
+      else:
+        ret.cruiseState.speed = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS if self.CP.pcmCruise else 0
       ret.accFaulted = pt_cp.vl["TSK_06"]["TSK_Status"] in (6, 7)
 
       ret.leftBlinker = bool(pt_cp.vl["Blinkmodi_02"]["Comfort_Signal_Left"])
@@ -141,8 +154,7 @@ class CarState(CarStateBase):
 
     self.eps_stock_values = pt_cp.vl["LH_EPS_03"]
     if self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
-      # Camera CAN is not on C3; LDW is gateway-forwarded onto vehicle CAN.
-      self.ldw_stock_values = pt_cp.vl["LDW_02"]
+      self.ldw_stock_values = {}
     else:
       self.ldw_stock_values = cam_cp.vl["LDW_02"] if self.CP.networkLocation == NetworkLocation.fwdCamera else {}
     self.gra_stock_values = pt_cp.vl["GRA_ACC_01"]
@@ -469,17 +481,9 @@ class CarState(CarStateBase):
       pt_messages.append(("Motor_EV_01", 10))
 
     cam_messages = []
-    # Gateway CAN splice: TSK/EPS live on bus 0. ACC_02/06/10 and SWA_01 do not
-    # (C3 logs: timeout -> canError / Unknown Vehicle Variant). Keep them optional
-    # so vl[] does not lazy-add them as required. Camera port (bus 2) is unused.
+    # Jetta: do not subscribe to ACC/SWA/LDW at all. They are not on this splice;
+    # even nan still gets canError if update() hits vl[] on the other bus.
     if CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
-      pt_messages += [
-        ("ACC_06", math.nan),
-        ("ACC_10", math.nan),
-        ("ACC_02", math.nan),
-        ("SWA_01", math.nan),
-        ("LDW_02", math.nan),
-      ]
       cam_messages += [
         ("LDW_02", math.nan),
         ("HCA_01", math.nan),

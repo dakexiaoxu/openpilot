@@ -101,6 +101,7 @@ class CarInterface(CarInterfaceBase):
       # gateway routing would look for those frames on the unused camera port.
       if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
         ret.networkLocation = NetworkLocation.fwdCamera
+        ret.enableBsm = False
 
       if 0x126 in fingerprint[2]:  # HCA_01
         ret.flags |= VolkswagenFlags.STOCK_HCA_PRESENT.value
