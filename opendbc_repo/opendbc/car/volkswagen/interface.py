@@ -132,16 +132,19 @@ class CarInterface(CarInterfaceBase):
       ret.longitudinalTuning.kiV = [0.4, 0.]
 
     ret.alphaLongitudinalAvailable = ret.networkLocation == NetworkLocation.gateway or docs
-    # Gateway splice still uses bus-0 routing above, but this is a gateway install:
-    # keep the Alpha Long toggle like Carrot/StarPilot/FrogPilot.
-    if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
-      ret.alphaLongitudinalAvailable = True
     if alpha_long and (not ret.flags & VolkswagenFlags.MEB or ret.alphaLongitudinalAvailable):
       # Panda ALLOW_DEBUG firmware is required for Volkswagen longitudinal control.
       ret.openpilotLongitudinalControl = True
       safety_configs[0].safetyParam |= VolkswagenSafetyFlags.LONG_CONTROL.value
       if ret.transmissionType == TransmissionType.manual:
         ret.minEnableSpeed = 4.5
+
+    # J533 splice cannot isolate stock ACC. Alpha Long TX of ACC_02/06/07 on the
+    # live gateway CAN puts TSK into 6/7 → Cruise Fault. Keep stock ACC/GRA.
+    if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
+      ret.openpilotLongitudinalControl = False
+      ret.alphaLongitudinalAvailable = False
+      safety_configs[0].safetyParam &= ~int(VolkswagenSafetyFlags.LONG_CONTROL)
 
     # Per-vehicle overrides
 
