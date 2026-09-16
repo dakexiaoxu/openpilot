@@ -125,13 +125,20 @@ class CarState(CarStateBase):
       self.esp_hold_confirmation = bool(pt_cp.vl["ESP_21"]["ESP_Haltebestaetigung"])
       speed_limiter_mode = bool(pt_cp.vl["TSK_06"]["TSK_Limiter_ausgewaehlt"])
 
-      ret.cruiseState.available = pt_cp.vl["TSK_06"]["TSK_Status"] in (2, 3, 4, 5)
-      ret.cruiseState.enabled = pt_cp.vl["TSK_06"]["TSK_Status"] in (3, 4, 5)
+      tsk_status = pt_cp.vl["TSK_06"]["TSK_Status"]
+      ret.cruiseState.available = tsk_status in (2, 3, 4, 5)
+      ret.cruiseState.enabled = tsk_status in (3, 4, 5)
       if self.CP.pcmCruise and acc_src is not None and "ACC_02" in acc_src.vl:
         ret.cruiseState.speed = acc_src.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS
       else:
         ret.cruiseState.speed = 0
-      ret.accFaulted = pt_cp.vl["TSK_06"]["TSK_Status"] in (6, 7)
+      ret.accFaulted = tsk_status in (6, 7)
+      if self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7 and tsk_status in (0, 1, 6, 7):
+        # Gateway splice latches TSK 6/7 while C3 is plugged in. Do not block
+        # on-road calibration / AOL lane keep with Cruise Fault.
+        ret.accFaulted = False
+        ret.cruiseState.available = True
+        ret.cruiseState.enabled = False
 
       ret.leftBlinker = bool(pt_cp.vl["Blinkmodi_02"]["Comfort_Signal_Left"])
       ret.rightBlinker = bool(pt_cp.vl["Blinkmodi_02"]["Comfort_Signal_Right"])
