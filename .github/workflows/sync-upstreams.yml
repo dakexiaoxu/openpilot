@@ -2,36 +2,44 @@ name: Sync upstreams without deleting
 
 on:
   schedule:
-    - cron: "0 1 * * *"
+    - cron: "0 4,16 * * *"
   workflow_dispatch:
+
+concurrency:
+  group: sync-upstreams
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
-    permissions:
-      contents: write
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
         include:
+          - local: carrot-wip
+            source: https://github.com/ajouatom/openpilot.git
+            branch: carrot-wip
           - local: Carrot
             source: https://gitcode.com/jixiexiaoge/openpilot.git
             branch: Carrot
           - local: Lane
             source: https://gitcode.com/jixiexiaoge/openpilot.git
             branch: Lane
+          - local: dev
+            source: https://gitcode.com/jixiexiaoge/openpilot.git
+            branch: dev
           - local: egpu
             source: https://gitcode.com/jixiexiaoge/openpilot.git
             branch: egpu
           - local: onnx
             source: https://gitcode.com/jixiexiaoge/openpilot.git
             branch: onnx
-          - local: StarPilot
-            source: https://github.com/firestar5683/StarPilot.git
-            branch: StarPilot
     steps:
-      - name: Fetch upstream and merge into local branch
+      - name: Merge upstream into local branch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LOCAL_BRANCH: ${{ matrix.local }}
@@ -39,31 +47,94 @@ jobs:
           SOURCE_BRANCH: ${{ matrix.branch }}
         run: |
           set -euo pipefail
-          git config --global user.name "dakexiaoxu"
-          git config --global user.email "xuxiujun2017@gmail.com"
-          git init work
-          cd work
+
+          git() {
+            local args="$*"
+            if printf '%s' "$args" | grep -Eq -- '--delete|--mirror|--force|--force-with-lease|(^|[[:space:]])-f($|[[:space:]])'; then
+              echo "REFUSING destructive git: git $args"
+              return 1
+            fi
+            if printf '%s' "$args" | grep -Eq '(^|[[:space:]])push($|[[:space:]])'; then
+              if printf '%s' "$args" | grep -Eq '(^|[[:space:]]):\S'; then
+                echo "REFUSING delete-refspec push: git $args"
+                return 1
+              fi
+            fi
+            command git "$@"
+          }
+
+          export GIT_LFS_SKIP_SMUDGE=1
+          command git lfs install --skip-smudge
+          command git config --global user.name "github-actions[bot]"
+          command git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          command git config --global fetch.prune false
+          command git config --global lfs.locksverify false
+
+          work="$RUNNER_TEMP/sync-$LOCAL_BRANCH"
+          mkdir -p "$work"
+          cd "$work"
+          git init
+          command git sparse-checkout init --cone
+          command git sparse-checkout set .github
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git remote add upstream "$SOURCE_URL"
+          command git config fetch.prune false
+          command git config remote.origin.prune false
+          command git config remote.upstream.prune false
 
-          if ! git fetch --depth 1 origin "$LOCAL_BRANCH"; then
+          if git ls-remote --exit-code --heads origin "$LOCAL_BRANCH"; then
+            git fetch --no-prune --filter=blob:none origin "$LOCAL_BRANCH:refs/heads/$LOCAL_BRANCH"
+            git checkout -B "$LOCAL_BRANCH" "$LOCAL_BRANCH"
+            echo "LOCAL_OK $LOCAL_BRANCH $(git rev-parse --short HEAD)"
+          else
             echo "LOCAL_MISSING $LOCAL_BRANCH"
-            exit 1
           fi
-          git checkout -B "$LOCAL_BRANCH" "FETCH_HEAD"
 
           if ! git ls-remote --exit-code --heads upstream "$SOURCE_BRANCH"; then
             echo "UPSTREAM_GONE keep local $LOCAL_BRANCH"
             exit 0
           fi
 
-          if ! git fetch --depth 50 upstream "$SOURCE_BRANCH"; then
-            echo "UPSTREAM_FETCH_FAILED keep local $LOCAL_BRANCH"
+          git fetch --no-prune --filter=blob:none upstream "$SOURCE_BRANCH:refs/remotes/upstream/$SOURCE_BRANCH"
+          echo "UPSTREAM_OK $SOURCE_BRANCH $(git rev-parse --short "upstream/$SOURCE_BRANCH")"
+
+          if ! git show-ref --verify --quiet "refs/heads/$LOCAL_BRANCH"; then
+            git checkout -B "$LOCAL_BRANCH" "upstream/$SOURCE_BRANCH"
+            command git lfs fetch upstream "$SOURCE_BRANCH" || true
+            git push origin "HEAD:refs/heads/${LOCAL_BRANCH}"
+            command git lfs push origin "$LOCAL_BRANCH" || true
+            echo "CREATED $LOCAL_BRANCH from $SOURCE_URL $SOURCE_BRANCH"
             exit 0
           fi
 
+          if git merge-base --is-ancestor "upstream/$SOURCE_BRANCH" HEAD; then
+            echo "ALREADY_UP_TO_DATE $LOCAL_BRANCH"
+            exit 0
+          fi
+
+          restore_wf=""
+          if [ -f .github/workflows/sync-upstreams.yml ]; then
+            cp .github/workflows/sync-upstreams.yml "$RUNNER_TEMP/sync-upstreams.yml.bak"
+            restore_wf=1
+          fi
+
           if git merge --no-edit "upstream/$SOURCE_BRANCH"; then
-            git push origin "HEAD:$LOCAL_BRANCH"
+            if [ "$LOCAL_BRANCH" = "Carrot" ] && [ -n "$restore_wf" ]; then
+              if [ ! -f .github/workflows/sync-upstreams.yml ] || ! grep -q "ajouatom/openpilot" .github/workflows/sync-upstreams.yml; then
+                mkdir -p .github/workflows
+                cp "$RUNNER_TEMP/sync-upstreams.yml.bak" .github/workflows/sync-upstreams.yml
+                git add .github/workflows/sync-upstreams.yml
+                git diff --cached --quiet || git commit -m "Keep periodic upstream sync workflow"
+              fi
+            fi
+            command git lfs fetch upstream "$SOURCE_BRANCH" || true
+            git push origin "HEAD:refs/heads/${LOCAL_BRANCH}"
+            if ! command git lfs push origin "$LOCAL_BRANCH"; then
+              if [ "$LOCAL_BRANCH" = "carrot-wip" ]; then
+                echo "LFS_PUSH_FAILED $LOCAL_BRANCH"
+                exit 1
+              fi
+            fi
             echo "MERGED_OK $LOCAL_BRANCH"
           else
             git merge --abort || true
