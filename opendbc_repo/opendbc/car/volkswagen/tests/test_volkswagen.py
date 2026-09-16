@@ -66,6 +66,35 @@ class TestVolkswagenPlatformConfigs:
     assert not cp.pcmCruise
     assert cp.safetyConfigs[-1].safetyParam & VolkswagenSafetyFlags.LONG_CONTROL
 
+  def test_mqb_camera_alpha_long_keeps_stock_acc(self):
+    fingerprint = {bus: {} for bus in range(8)}
+    cp = CarInterface.get_params(CAR.VOLKSWAGEN_GOLF_MK7, fingerprint, [], True, False, False, None)
+    assert cp.networkLocation == CarParams.NetworkLocation.fwdCamera
+    assert not cp.alphaLongitudinalAvailable
+    assert not cp.openpilotLongitudinalControl
+    assert cp.pcmCruise
+    assert not (cp.safetyConfigs[-1].safetyParam & VolkswagenSafetyFlags.LONG_CONTROL)
+
+  def test_mqb_gateway_longitudinal(self):
+    fingerprint = {bus: {} for bus in range(8)}
+    fingerprint[1][0x40] = 8
+    cp = CarInterface.get_params(CAR.VOLKSWAGEN_GOLF_MK7, fingerprint, [], True, False, False, None)
+    assert cp.networkLocation == CarParams.NetworkLocation.gateway
+    assert cp.alphaLongitudinalAvailable
+    assert cp.openpilotLongitudinalControl
+    assert not cp.pcmCruise
+    assert cp.safetyConfigs[-1].safetyParam & VolkswagenSafetyFlags.LONG_CONTROL
+
+  def test_jetta_mk7_stays_camera_even_if_bus1_looks_like_gateway(self):
+    fingerprint = {bus: {} for bus in range(8)}
+    fingerprint[1][0x40] = 8
+    cp = CarInterface.get_params(CAR.VOLKSWAGEN_JETTA_MK7, fingerprint, [], True, False, False, None)
+    assert cp.networkLocation == CarParams.NetworkLocation.fwdCamera
+    assert not cp.alphaLongitudinalAvailable
+    assert not cp.openpilotLongitudinalControl
+    assert cp.pcmCruise
+    assert not (cp.safetyConfigs[-1].safetyParam & VolkswagenSafetyFlags.LONG_CONTROL)
+
   @pytest.mark.parametrize("data_hex", (
     "fc03fcfcfc0f0000",
     "e304fcfcfc0f0000",

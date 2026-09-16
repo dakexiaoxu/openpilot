@@ -94,6 +94,12 @@ class CarInterface(CarInterfaceBase):
       else:
         ret.networkLocation = NetworkLocation.fwdCamera
 
+      # Comma C3 on this Jetta is a camera-harness install. A false gateway
+      # detect would allow Alpha Long to relay ACC_02/06/07 and fault stock
+      # Front Assist plus TSK cruise.
+      if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
+        ret.networkLocation = NetworkLocation.fwdCamera
+
       if 0x126 in fingerprint[2]:  # HCA_01
         ret.flags |= VolkswagenFlags.STOCK_HCA_PRESENT.value
       if 0x6B8 in fingerprint[0]:  # Kombi_03
@@ -123,7 +129,9 @@ class CarInterface(CarInterfaceBase):
       ret.longitudinalTuning.kiV = [0.4, 0.]
 
     ret.alphaLongitudinalAvailable = ret.networkLocation == NetworkLocation.gateway or docs
-    if alpha_long and (not ret.flags & VolkswagenFlags.MEB or ret.alphaLongitudinalAvailable):
+    # Camera-harness VW must keep stock ACC. LONG_CONTROL relays ACC_02/06/07,
+    # which faults TSK (Cruise Fault) and cluster Front Assist.
+    if alpha_long and ret.alphaLongitudinalAvailable:
       # Panda ALLOW_DEBUG firmware is required for Volkswagen longitudinal control.
       ret.openpilotLongitudinalControl = True
       safety_configs[0].safetyParam |= VolkswagenSafetyFlags.LONG_CONTROL.value
