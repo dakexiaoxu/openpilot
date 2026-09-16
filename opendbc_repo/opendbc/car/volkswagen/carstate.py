@@ -4,7 +4,7 @@ from opendbc.can import CANParser
 from opendbc.car import Bus, structs
 from opendbc.car.interfaces import CarStateBase
 from opendbc.car.common.conversions import Conversions as CV
-from opendbc.car.volkswagen.values import DBC, CanBus, NetworkLocation, TransmissionType, GearShifter, \
+from opendbc.car.volkswagen.values import CAR, DBC, CanBus, NetworkLocation, TransmissionType, GearShifter, \
                                                       CarControllerParams, VolkswagenFlags
 
 ButtonType = structs.CarState.ButtonEvent.Type
@@ -463,22 +463,37 @@ class CarState(CarStateBase):
     ]
     if CP.transmissionType == TransmissionType.direct:
       pt_messages.append(("Motor_EV_01", 10))
-    if CP.networkLocation == NetworkLocation.fwdCamera:
-      pt_messages += MqbExtraSignals.fwd_radar_messages
-      if CP.enableBsm:
-        pt_messages += MqbExtraSignals.bsm_radar_messages
 
     cam_messages = []
-    if CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
-      cam_messages += [
-        ("HCA_01", 1),  # From R242 Driver assistance camera, 50Hz if steering/1Hz if not
+    # This Jetta taps vehicle CAN only (no camera connector). Required camera-bus
+    # frames (LDW_02 at 10Hz) never arrive, CANParser drops canValid, and the UI
+    # shows the relabeled canError "Unknown Vehicle Variant" every second.
+    if CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
+      pt_messages += [
+        ("ACC_06", math.nan),
+        ("ACC_10", math.nan),
+        ("ACC_02", math.nan),
+        ("SWA_01", math.nan),
       ]
-    if CP.networkLocation == NetworkLocation.fwdCamera:
-      cam_messages += [("LDW_02", 10)]
+      cam_messages += [
+        ("LDW_02", math.nan),
+        ("HCA_01", math.nan),
+      ]
     else:
-      cam_messages += MqbExtraSignals.fwd_radar_messages
-      if CP.enableBsm:
-        cam_messages += MqbExtraSignals.bsm_radar_messages
+      if CP.networkLocation == NetworkLocation.fwdCamera:
+        pt_messages += MqbExtraSignals.fwd_radar_messages
+        if CP.enableBsm:
+          pt_messages += MqbExtraSignals.bsm_radar_messages
+      if CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
+        cam_messages += [
+          ("HCA_01", 1),  # From R242 Driver assistance camera, 50Hz if steering/1Hz if not
+        ]
+      if CP.networkLocation == NetworkLocation.fwdCamera:
+        cam_messages += [("LDW_02", 10)]
+      else:
+        cam_messages += MqbExtraSignals.fwd_radar_messages
+        if CP.enableBsm:
+          cam_messages += MqbExtraSignals.bsm_radar_messages
 
     return {
       Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], pt_messages, CanBus(CP).pt),
