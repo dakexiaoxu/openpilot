@@ -213,9 +213,9 @@ class Multilang:
     return singular if n == 1 else plural
 
   def font_codepoints(self) -> list[int]:
-    """Glyphs needed to draw the current UI, including Simplified Chinese."""
+    """Glyphs needed to draw the current UI, including live Amap road names."""
     chars = set(map(chr, range(32, 127)))
-    chars.update("–‑✓×°§•€£¥²⚠ⓘ◀▶✔✕⌫⇧␣○●↳çêüñ")
+    chars.update("–‑✓×°§•€£¥²⚠ⓘ◀▶✔✕⌫⇧␣○●↳çêüñ随后")
     for name in self.languages:
       chars.update(str(name))
     for text in self._translations.values():
@@ -235,6 +235,12 @@ class Multilang:
       chars.update(po_path.read_text(encoding="utf-8"))
     except Exception:
       pass
+    if self._language.startswith("zh"):
+      # Amap/NOO street names are not in the settings catalog. Bake GB/CJK so
+      # 匝道/辅路 and similar instructions do not render as "?".
+      chars.update(chr(cp) for cp in range(0x3000, 0x303F + 1))
+      chars.update(chr(cp) for cp in range(0x4E00, 0x9FFF + 1))
+      chars.update(chr(cp) for cp in range(0xFF00, 0xFFEF + 1))
     return sorted({ord(ch) for ch in chars if ch})
 
   def _load_languages(self):

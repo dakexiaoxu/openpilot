@@ -44,6 +44,11 @@ _BUTTON_PRESS = re.compile(
 _CC_MAIN = re.compile(r"^Action performed when the cruise control main button is pressed\.$")
 
 
+_NAV_EXTRA = {
+  "Then": "随后",
+}
+
+
 def _load_map() -> dict[str, str]:
   try:
     data = json.loads(_MAP_PATH.read_text(encoding="utf-8"))
@@ -51,7 +56,9 @@ def _load_map() -> dict[str, str]:
     return {}
   if not isinstance(data, dict):
     return {}
-  return {str(k): str(v) for k, v in data.items() if k and v}
+  merged = {str(k): str(v) for k, v in data.items() if k and v}
+  merged.update(_NAV_EXTRA)
+  return merged
 
 
 def reload_map() -> dict[str, str]:

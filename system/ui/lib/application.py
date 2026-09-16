@@ -1187,23 +1187,30 @@ class GuiApplication:
     return self._height
 
   def _load_unifont(self, font_dir: Path) -> rl.Font:
-    """The committed unifont.fnt atlas is ASCII-only. Load unifont.otf with CJK glyphs at runtime."""
-    otf_path = font_dir / "unifont.otf"
+    """The committed unifont.fnt atlas is ASCII-only. Load CJK at runtime."""
     fnt_path = font_dir / FontWeight.UNIFONT
     codepoints = multilang.font_codepoints()
-    if otf_path.exists() and len(codepoints) > 128:
-      try:
-        cp_buffer = rl.ffi.new("int[]", codepoints)
-        cp_ptr = rl.ffi.cast("int *", cp_buffer)
-        font = rl.load_font_ex(otf_path.as_posix(), 16, cp_ptr, len(codepoints))
-        glyph_count = int(getattr(font, "glyphCount", 0) or 0)
-        if glyph_count >= 200:
-          cloudlog.warning(f"Loaded unifont.otf with {glyph_count} glyphs for Chinese UI")
-          return font
-        cloudlog.error(f"unifont.otf only produced {glyph_count} glyphs; using bitmap atlas")
-        rl.unload_font(font)
-      except Exception:
-        cloudlog.exception("Failed loading unifont.otf; using bitmap atlas")
+    otf_candidates = [font_dir / "unifont.otf"]
+    if str(getattr(multilang, "language", "")).startswith("zh"):
+      otf_candidates.append(Path("/usr/share/fonts/NotoSansSC-Regular.otf"))
+    if len(codepoints) > 128:
+      for otf_path in otf_candidates:
+        if not otf_path.exists():
+          continue
+        try:
+          # Full CJK (~21k) must stay 16px so the atlas fits on tici.
+          font_size = 16
+          cp_buffer = rl.ffi.new("int[]", codepoints)
+          cp_ptr = rl.ffi.cast("int *", cp_buffer)
+          font = rl.load_font_ex(otf_path.as_posix(), font_size, cp_ptr, len(codepoints))
+          glyph_count = int(getattr(font, "glyphCount", 0) or 0)
+          if glyph_count >= 1000:
+            cloudlog.warning(f"Loaded {otf_path.name} with {glyph_count} glyphs for Chinese UI")
+            return font
+          cloudlog.error(f"{otf_path.name} only produced {glyph_count} glyphs; trying next font")
+          rl.unload_font(font)
+        except Exception:
+          cloudlog.exception(f"Failed loading {otf_path}; trying next font")
     return rl.load_font(fnt_path.as_posix())
 
   def _load_fonts(self):
