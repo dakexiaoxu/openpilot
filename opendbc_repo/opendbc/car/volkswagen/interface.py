@@ -94,7 +94,7 @@ class CarInterface(CarInterfaceBase):
       else:
         ret.networkLocation = NetworkLocation.fwdCamera
 
-      if 0x126 in fingerprint[2]:  # HCA_01
+      if 0x126 in fingerprint[2] and candidate != CAR.VOLKSWAGEN_JETTA_MK7:  # HCA_01
         ret.flags |= VolkswagenFlags.STOCK_HCA_PRESENT.value
       if 0x6B8 in fingerprint[0]:  # Kombi_03
         ret.flags |= VolkswagenFlags.KOMBI_PRESENT.value
@@ -149,5 +149,14 @@ class CarInterface(CarInterfaceBase):
     if CAN.pt >= 4:
       safety_configs.insert(0, get_safety_config(structs.CarParams.SafetyModel.noOutput))
     ret.safetyConfigs = safety_configs
+
+    if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
+      # Carrot/Lane assume a camera/gateway intercept harness. This Jetta is a
+      # J533 splice: volkswagen safety TX of HCA/LDW on the live CAN faults TSK
+      # (Cruise Fault). Listen-only until a real intercept harness is fitted.
+      ret.openpilotLongitudinalControl = False
+      ret.alphaLongitudinalAvailable = False
+      ret.pcmCruise = True
+      ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.noOutput)]
 
     return ret

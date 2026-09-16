@@ -87,7 +87,7 @@ class CarState(CarStateBase):
         pt_cp.vl["ESP_19"]["ESP_HR_Radgeschw_02"],
       )
 
-      if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
+      if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT and self.CP.carFingerprint != CAR.VOLKSWAGEN_JETTA_MK7:
         ret.carFaultedNonCritical = bool(cam_cp.vl["HCA_01"]["EA_Ruckfreigabe"]) or cam_cp.vl["HCA_01"]["EA_ACC_Sollstatus"] > 0  # EA
 
       ret.brake = pt_cp.vl["ESP_05"]["ESP_Bremsdruck"] / 250.0  # FIXME: this is pressure in Bar, not sure what OP expects
@@ -102,23 +102,35 @@ class CarState(CarStateBase):
                           pt_cp.vl["Gateway_72"]["ZV_HBFS_offen"],
                           pt_cp.vl["Gateway_72"]["ZV_HD_offen"]])
 
-      if self.CP.enableBsm:
+      if self.CP.enableBsm and "SWA_01" in ext_cp.vl:
         # Infostufe: BSM LED on, Warnung: BSM LED flashing
         ret.leftBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_li"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_li"])
         ret.rightBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_re"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_re"])
 
-      ret.stockFcw = bool(ext_cp.vl["ACC_10"]["AWV2_Freigabe"])
-      ret.stockAeb = bool(ext_cp.vl["ACC_10"]["ANB_Teilbremsung_Freigabe"]) or bool(ext_cp.vl["ACC_10"]["ANB_Zielbremsung_Freigabe"])
+      acc_src = ext_cp
+      if self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
+        # Camera bus is not on C3; radar/ACC may only exist on the gateway splice.
+        if "ACC_02" in pt_cp.vl:
+          acc_src = pt_cp
+        elif "ACC_02" not in ext_cp.vl:
+          acc_src = None
 
-      self.acc_type = ext_cp.vl["ACC_06"]["ACC_Typ"]
-      acc_limiter_mode = ext_cp.vl["ACC_02"]["ACC_Gesetzte_Zeitluecke"] == 0
+      if acc_src is not None and "ACC_10" in acc_src.vl:
+        ret.stockFcw = bool(acc_src.vl["ACC_10"]["AWV2_Freigabe"])
+        ret.stockAeb = bool(acc_src.vl["ACC_10"]["ANB_Teilbremsung_Freigabe"]) or bool(acc_src.vl["ACC_10"]["ANB_Zielbremsung_Freigabe"])
+      if acc_src is not None and "ACC_06" in acc_src.vl:
+        self.acc_type = acc_src.vl["ACC_06"]["ACC_Typ"]
+      acc_limiter_mode = bool(acc_src is not None and "ACC_02" in acc_src.vl and acc_src.vl["ACC_02"]["ACC_Gesetzte_Zeitluecke"] == 0)
 
       self.esp_hold_confirmation = bool(pt_cp.vl["ESP_21"]["ESP_Haltebestaetigung"])
       speed_limiter_mode = bool(pt_cp.vl["TSK_06"]["TSK_Limiter_ausgewaehlt"])
 
       ret.cruiseState.available = pt_cp.vl["TSK_06"]["TSK_Status"] in (2, 3, 4, 5)
       ret.cruiseState.enabled = pt_cp.vl["TSK_06"]["TSK_Status"] in (3, 4, 5)
-      ret.cruiseState.speed = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS if self.CP.pcmCruise else 0
+      if self.CP.pcmCruise and acc_src is not None and "ACC_02" in acc_src.vl:
+        ret.cruiseState.speed = acc_src.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS
+      else:
+        ret.cruiseState.speed = 0
       ret.accFaulted = pt_cp.vl["TSK_06"]["TSK_Status"] in (6, 7)
 
       ret.leftBlinker = bool(pt_cp.vl["Blinkmodi_02"]["Comfort_Signal_Left"])
@@ -406,6 +418,11 @@ class CarState(CarStateBase):
 
     hca_status = self.CCP.hca_status_values.get(pt_cp.vl["LH_EPS_03"]["EPS_HCA_Status"])
     ret.steerFaultTemporary, ret.steerFaultPermanent = self.update_hca_state(hca_status, drive_mode)
+    if self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
+      # Listen-only splice: leftover EPS HCA FAULT after a prior TX session
+      # must not latch LKAS Fault on C3.
+      ret.steerFaultTemporary = False
+      ret.steerFaultPermanent = False
     return
 
   def update_hca_state(self, hca_status, drive_mode=True):
@@ -459,27 +476,33 @@ class CarState(CarStateBase):
       ("Motor_14", 10),
       ("Airbag_02", 5),
       ("Kombi_01", 2),
-      ("Blinkmodi_02", 1),
+      ("Blinkmodi_02", math.nan if CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7 else 1),
       ("Kombi_03", math.nan),
     ]
     if CP.transmissionType == TransmissionType.direct:
       pt_messages.append(("Motor_EV_01", 10))
 
     cam_messages = []
-    if CP.networkLocation == NetworkLocation.fwdCamera:
-      pt_messages += MqbExtraSignals.fwd_radar_messages
-      if CP.enableBsm:
-        pt_messages += MqbExtraSignals.bsm_radar_messages
-    if CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
-      cam_messages += [
-        ("HCA_01", 1),  # From R242 Driver assistance camera, 50Hz if steering/1Hz if not
-      ]
-    if CP.networkLocation == NetworkLocation.fwdCamera:
-      cam_messages += [("LDW_02", 10)]
+    if CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
+      # Gateway splice, no camera harness: radar/HCA/LDW are optional on both buses.
+      pt_messages += [(n, math.nan) for n, _ in MqbExtraSignals.fwd_radar_messages + MqbExtraSignals.bsm_radar_messages]
+      cam_messages += [(n, math.nan) for n, _ in MqbExtraSignals.fwd_radar_messages + MqbExtraSignals.bsm_radar_messages]
+      cam_messages += [("LDW_02", math.nan)]
     else:
-      cam_messages += MqbExtraSignals.fwd_radar_messages
-      if CP.enableBsm:
-        cam_messages += MqbExtraSignals.bsm_radar_messages
+      if CP.networkLocation == NetworkLocation.fwdCamera:
+        pt_messages += MqbExtraSignals.fwd_radar_messages
+        if CP.enableBsm:
+          pt_messages += MqbExtraSignals.bsm_radar_messages
+      if CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
+        cam_messages += [
+          ("HCA_01", 1),  # From R242 Driver assistance camera, 50Hz if steering/1Hz if not
+        ]
+      if CP.networkLocation == NetworkLocation.fwdCamera:
+        cam_messages += [("LDW_02", 10)]
+      else:
+        cam_messages += MqbExtraSignals.fwd_radar_messages
+        if CP.enableBsm:
+          cam_messages += MqbExtraSignals.bsm_radar_messages
 
     return {
       Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], pt_messages, CanBus(CP).pt),
