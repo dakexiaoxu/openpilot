@@ -85,19 +85,21 @@ class TestVolkswagenPlatformConfigs:
     assert not cp.pcmCruise
     assert cp.safetyConfigs[-1].safetyParam & VolkswagenSafetyFlags.LONG_CONTROL
 
-  def test_jetta_mk7_can_tap_keeps_stock_acc_on_bus0(self):
-    # J533 gateway CAN splice, camera bus not on C3: ACC/TSK stay on panda bus 0.
-    # Alpha Long cannot isolate stock ACC on this splice, so OP long stays off.
+  def test_jetta_mk7_matches_carrot_mqb_gateway_toggle(self):
+    # Same as dakexiaoxu Carrot/Lane: bus 1 chassis msgs => gateway, Alpha Long => OP long.
     fingerprint = {bus: {} for bus in range(8)}
     fingerprint[1][0x40] = 8
-    for alpha_long in (False, True):
-      cp = CarInterface.get_params(CAR.VOLKSWAGEN_JETTA_MK7, fingerprint, [], alpha_long, False, False, None)
-      assert cp.networkLocation == CarParams.NetworkLocation.fwdCamera
-      assert not cp.alphaLongitudinalAvailable
-      assert not cp.openpilotLongitudinalControl
-      assert cp.pcmCruise
-      assert not (cp.safetyConfigs[-1].safetyParam & VolkswagenSafetyFlags.LONG_CONTROL)
-      assert cp.safetyConfigs[-1].safetyModel == CarParams.SafetyModel.noOutput
+    stock = CarInterface.get_params(CAR.VOLKSWAGEN_JETTA_MK7, fingerprint, [], False, False, False, None)
+    assert stock.networkLocation == CarParams.NetworkLocation.gateway
+    assert stock.alphaLongitudinalAvailable
+    assert not stock.openpilotLongitudinalControl
+    assert stock.pcmCruise
+
+    op_long = CarInterface.get_params(CAR.VOLKSWAGEN_JETTA_MK7, fingerprint, [], True, False, False, None)
+    assert op_long.networkLocation == CarParams.NetworkLocation.gateway
+    assert op_long.openpilotLongitudinalControl
+    assert not op_long.pcmCruise
+    assert op_long.safetyConfigs[-1].safetyParam & VolkswagenSafetyFlags.LONG_CONTROL
 
   @pytest.mark.parametrize("data_hex", (
     "fc03fcfcfc0f0000",

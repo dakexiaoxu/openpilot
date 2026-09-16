@@ -94,15 +94,6 @@ class CarInterface(CarInterfaceBase):
       else:
         ret.networkLocation = NetworkLocation.fwdCamera
 
-      # Jetta C3 is spliced onto the factory J533 gateway CAN. Stock radar,
-      # lane keep, and side-assist are read through the gateway on panda bus 0.
-      # The camera CAN stays on the stock computer only — panda bus 2 is empty.
-      # Keep fwdCamera *routing* so ACC/TSK/SWA are parsed on bus 0. Official
-      # gateway routing would look for those frames on the unused camera port.
-      if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
-        ret.networkLocation = NetworkLocation.fwdCamera
-        ret.enableBsm = False
-
       if 0x126 in fingerprint[2]:  # HCA_01
         ret.flags |= VolkswagenFlags.STOCK_HCA_PRESENT.value
       if 0x6B8 in fingerprint[0]:  # Kombi_03
@@ -132,19 +123,13 @@ class CarInterface(CarInterfaceBase):
       ret.longitudinalTuning.kiV = [0.4, 0.]
 
     ret.alphaLongitudinalAvailable = ret.networkLocation == NetworkLocation.gateway or docs
-    if alpha_long and (not ret.flags & VolkswagenFlags.MEB or ret.alphaLongitudinalAvailable):
+    # Same as dakexiaoxu Carrot/Lane: MQB enables OP long from Alpha Long alone.
+    if alpha_long and (ret.alphaLongitudinalAvailable or not (ret.flags & VolkswagenFlags.MEB)):
       # Panda ALLOW_DEBUG firmware is required for Volkswagen longitudinal control.
       ret.openpilotLongitudinalControl = True
       safety_configs[0].safetyParam |= VolkswagenSafetyFlags.LONG_CONTROL.value
       if ret.transmissionType == TransmissionType.manual:
         ret.minEnableSpeed = 4.5
-
-    # J533 splice cannot isolate stock ACC. Alpha Long TX of ACC_02/06/07 on the
-    # live gateway CAN puts TSK into 6/7 → Cruise Fault. Keep stock ACC/GRA.
-    if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
-      ret.openpilotLongitudinalControl = False
-      ret.alphaLongitudinalAvailable = False
-      safety_configs[0].safetyParam &= ~int(VolkswagenSafetyFlags.LONG_CONTROL)
 
     # Per-vehicle overrides
 
@@ -164,10 +149,5 @@ class CarInterface(CarInterfaceBase):
     if CAN.pt >= 4:
       safety_configs.insert(0, get_safety_config(structs.CarParams.SafetyModel.noOutput))
     ret.safetyConfigs = safety_configs
-
-    if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
-      # Listen-only. Volkswagen safety opens the intercept relay; on this splice
-      # stock HCA/LDW on bus 0 trip check_relay, forwarding dies, TSK → Cruise Fault.
-      ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.noOutput)]
 
     return ret

@@ -75,10 +75,13 @@ function agnos_init {
   printf '1' | sudo tee /data/params/d/NNFF >/dev/null
   printf '0' | sudo tee /data/params/d/NNFFLite >/dev/null
   printf '1' | sudo tee /data/params/d/LateralTune >/dev/null
-  # Jetta J533 splice: never enable OP long. Alpha Long TX of ACC faults TSK
-  # (Cruise Fault). Stock ACC + GRA resume-after-brake still work.
-  printf '0' | sudo tee /data/params/d/AlphaLongitudinalEnabled >/dev/null
-  printf '1' | sudo tee /data/params/d/DisableOpenpilotLongitudinal >/dev/null
+  # Same as Carrot/Lane: do not overwrite Alpha Long. Missing file only.
+  if [ ! -s /data/params/d/AlphaLongitudinalEnabled ]; then
+    printf '0' | sudo tee /data/params/d/AlphaLongitudinalEnabled >/dev/null
+  fi
+  if [ ! -s /data/params/d/DisableOpenpilotLongitudinal ]; then
+    printf '0' | sudo tee /data/params/d/DisableOpenpilotLongitudinal >/dev/null
+  fi
   if [ ! -s /data/params/d/DrivingModel ]; then
     printf '%s' 'rdf43' | sudo tee /data/params/d/DrivingModel >/dev/null
     printf '%s' 'rdf43' | sudo tee /data/params/d/Model >/dev/null

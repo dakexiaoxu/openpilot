@@ -5,7 +5,7 @@ from opendbc.car.lateral import apply_driver_steer_torque_limits
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.interfaces import CarControllerBase
 from opendbc.car.volkswagen import mebcan, mlbcan, mqbcan, pqcan
-from opendbc.car.volkswagen.values import CAR, CanBus, CarControllerParams, VolkswagenFlags
+from opendbc.car.volkswagen.values import CanBus, CarControllerParams, VolkswagenFlags
 
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
 LongCtrlState = structs.CarControl.Actuators.LongControlState
@@ -107,11 +107,7 @@ class CarController(CarControllerBase):
 
         self.eps_timer_soft_disable_alert = self.hca_frame_timer_running > self.CCP.STEER_TIME_ALERT / DT_CTRL
         self.apply_torque_last = apply_torque
-        # Gateway splice: stock camera already sends HCA on this CAN. Any OP HCA
-        # (even when enabled) faults EPS → LKAS Fault.
-        jetta_can_tap = self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7
-        if not jetta_can_tap:
-          can_sends.append(self.CCS.create_steering_control(self.packer_pt, self.CAN.pt, apply_torque, hca_enabled))
+        can_sends.append(self.CCS.create_steering_control(self.packer_pt, self.CAN.pt, apply_torque, hca_enabled))
 
       if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
         # Pacify VW Emergency Assist driver inactivity detection by changing its view of driver steering input torque
@@ -129,7 +125,7 @@ class CarController(CarControllerBase):
 
     # **** Acceleration Controls ******************************************** #
 
-    if self.CP.openpilotLongitudinalControl and self.CP.carFingerprint != CAR.VOLKSWAGEN_JETTA_MK7:
+    if self.CP.openpilotLongitudinalControl:
       if self.frame % self.CCP.ACC_CONTROL_STEP == 0:
         if self.CP.flags & VolkswagenFlags.MEB:
           accel = float(np.clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX))
@@ -154,7 +150,7 @@ class CarController(CarControllerBase):
 
     # **** HUD Controls ***************************************************** #
 
-    if self.frame % self.CCP.LDW_STEP == 0 and self.CP.carFingerprint != CAR.VOLKSWAGEN_JETTA_MK7:
+    if self.frame % self.CCP.LDW_STEP == 0:
       hud_alert = 0
       if hud_control.visualAlert in (VisualAlert.steerRequired, VisualAlert.ldw):
         hud_alert = self.CCP.LDW_MESSAGES["laneAssistTakeOver"]
@@ -164,7 +160,7 @@ class CarController(CarControllerBase):
     if hud_control.leadDistanceBars != self.lead_distance_bars_last:
       self.distance_bar_frame = self.frame
 
-    if self.frame % self.CCP.ACC_HUD_STEP == 0 and self.CP.openpilotLongitudinalControl and self.CP.carFingerprint != CAR.VOLKSWAGEN_JETTA_MK7:
+    if self.frame % self.CCP.ACC_HUD_STEP == 0 and self.CP.openpilotLongitudinalControl:
       if self.CP.flags & VolkswagenFlags.MEB:
         fcw_alert = hud_control.visualAlert == VisualAlert.fcw
         show_distance_bars = self.frame - self.distance_bar_frame < 400
@@ -185,10 +181,8 @@ class CarController(CarControllerBase):
 
     # **** Stock ACC Button Controls **************************************** #
 
-    # Same as firestar5683/StarPilot: only spoof GRA when using stock ACC.
-    # Jetta splice: do not TX GRA_ACC_01 onto the live stalk CAN (Cruise Fault).
-    gra_send_ready = (self.CP.pcmCruise and self.CP.carFingerprint != CAR.VOLKSWAGEN_JETTA_MK7
-                      and CS.gra_stock_values.get("COUNTER") != self.gra_acc_counter_last)
+    # Same as dakexiaoxu Carrot/Lane: spoof GRA only when using stock ACC.
+    gra_send_ready = self.CP.pcmCruise and CS.gra_stock_values.get("COUNTER") != self.gra_acc_counter_last
     if gra_send_ready and (CC.cruiseControl.cancel or CC.cruiseControl.resume):
       can_sends.append(self.CCS.create_acc_buttons_control(self.packer_pt, self.CAN.ext, CS.gra_stock_values,
                                                            cancel=CC.cruiseControl.cancel, resume=CC.cruiseControl.resume))
