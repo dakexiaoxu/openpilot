@@ -94,9 +94,10 @@ class CarInterface(CarInterfaceBase):
       else:
         ret.networkLocation = NetworkLocation.fwdCamera
 
-      # Comma C3 on this Jetta is a camera-harness install. A false gateway
-      # detect would allow Alpha Long to relay ACC_02/06/07 and fault stock
-      # Front Assist plus TSK cruise.
+      # This Jetta C3 taps vehicle CAN only (no camera connector). All ACC/TSK
+      # traffic is on panda bus 0. NetworkLocation.fwdCamera is the single-bus
+      # routing name, not a camera harness. Gateway routing would look for ACC
+      # on bus 2, which is the unused camera port.
       if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
         ret.networkLocation = NetworkLocation.fwdCamera
 
@@ -129,8 +130,9 @@ class CarInterface(CarInterfaceBase):
       ret.longitudinalTuning.kiV = [0.4, 0.]
 
     ret.alphaLongitudinalAvailable = ret.networkLocation == NetworkLocation.gateway or docs
-    # Camera-harness VW must keep stock ACC. LONG_CONTROL relays ACC_02/06/07,
-    # which faults TSK (Cruise Fault) and cluster Front Assist.
+    # Do not enable OP long unless this is a real dual-bus gateway. LONG_CONTROL
+    # relays ACC_02/06/07 on the tapped CAN, which faults TSK (Cruise Fault) and
+    # cluster Front Assist.
     if alpha_long and ret.alphaLongitudinalAvailable:
       # Panda ALLOW_DEBUG firmware is required for Volkswagen longitudinal control.
       ret.openpilotLongitudinalControl = True

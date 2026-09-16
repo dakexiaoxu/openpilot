@@ -75,8 +75,9 @@ function agnos_init {
   printf '1' | sudo tee /data/params/d/NNFF >/dev/null
   printf '0' | sudo tee /data/params/d/NNFFLite >/dev/null
   printf '1' | sudo tee /data/params/d/LateralTune >/dev/null
-  # Camera-harness Jetta must keep stock ACC/Front Assist. Alpha Long makes
-  # panda relay ACC_02/06/07 and the cluster reports 前部辅助系统不可用.
+  # Jetta CAN tap (no camera connector) must keep stock ACC/Front Assist.
+  # Alpha Long makes panda relay ACC_02/06/07 on that CAN and the cluster
+  # reports 前部辅助系统不可用.
   printf '0' | sudo tee /data/params/d/AlphaLongitudinalEnabled >/dev/null
   if [ ! -s /data/params/d/DrivingModel ]; then
     printf '%s' 'rdf43' | sudo tee /data/params/d/DrivingModel >/dev/null

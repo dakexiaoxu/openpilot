@@ -85,7 +85,8 @@ class TestVolkswagenPlatformConfigs:
     assert not cp.pcmCruise
     assert cp.safetyConfigs[-1].safetyParam & VolkswagenSafetyFlags.LONG_CONTROL
 
-  def test_jetta_mk7_stays_camera_even_if_bus1_looks_like_gateway(self):
+  def test_jetta_mk7_can_tap_keeps_stock_acc_on_bus0(self):
+    # Vehicle CAN tap, no camera connector: ACC/TSK stay on panda bus 0.
     fingerprint = {bus: {} for bus in range(8)}
     fingerprint[1][0x40] = 8
     cp = CarInterface.get_params(CAR.VOLKSWAGEN_JETTA_MK7, fingerprint, [], True, False, False, None)
