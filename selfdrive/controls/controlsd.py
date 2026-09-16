@@ -381,7 +381,6 @@ def get_torque_control_params(CP, torque_params, starpilot_toggles, use_live_par
 class Controls:
   def __init__(self) -> None:
     self.params = Params()
-    self._acb_need_resume = False
     cloudlog.info("controlsd is waiting for CarParams")
     self.CP = messaging.log_from_bytes(self.params.get("CarParams", block=True), car.CarParams)
     self.FPCP = messaging.log_from_bytes(self.params.get("StarPilotCarParams", block=True), custom.StarPilotCarParams)
@@ -850,19 +849,6 @@ class Controls:
     CC.cruiseControl.resume = CC.enabled and CS.cruiseState.standstill and (
       not self.sm['longitudinalPlan'].shouldStop or legacy_resume_hack
     )
-
-    try:
-      acb_raw = self.params.get("ActivateCruiseAfterBrake")
-      acb_on = True if acb_raw in (None, b"", "") else int(acb_raw) == 1
-    except Exception:
-      acb_on = True
-    if acb_on:
-      if CS.brakePressed and (CC.enabled or CS.cruiseState.enabled):
-        self._acb_need_resume = True
-      if self._acb_need_resume and not CS.brakePressed and CS.cruiseState.available:
-        CC.cruiseControl.resume = True
-        if CS.cruiseState.enabled:
-          self._acb_need_resume = False
 
     hudControl = CC.hudControl
     hud_set_speed = float(CS.vCruiseCluster * CV.KPH_TO_MS)

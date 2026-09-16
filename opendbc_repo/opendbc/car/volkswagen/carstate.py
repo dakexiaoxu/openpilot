@@ -1,10 +1,9 @@
-import math
 from cereal import custom
 from opendbc.can import CANParser
 from opendbc.car import Bus, structs
 from opendbc.car.interfaces import CarStateBase
 from opendbc.car.common.conversions import Conversions as CV
-from opendbc.car.volkswagen.values import CAR, DBC, CanBus, NetworkLocation, TransmissionType, GearShifter, \
+from opendbc.car.volkswagen.values import DBC, CanBus, NetworkLocation, TransmissionType, GearShifter, \
                                                       CarControllerParams, VolkswagenFlags
 
 ButtonType = structs.CarState.ButtonEvent.Type
@@ -75,10 +74,7 @@ class CarState(CarStateBase):
     if True:
       # MQB-specific
       if self.CP.flags & VolkswagenFlags.KOMBI_PRESENT:
-        try:
-          self.upscale_lead_car_signal = bool(pt_cp.vl["Kombi_03"]["KBI_Variante"])  # Analog vs digital instrument cluster
-        except Exception:
-          self.upscale_lead_car_signal = False
+        self.upscale_lead_car_signal = bool(pt_cp.vl["Kombi_03"]["KBI_Variante"])  # Analog vs digital instrument cluster
 
       self.parse_wheel_speeds(ret,
         pt_cp.vl["ESP_19"]["ESP_VL_Radgeschw_02"],
@@ -87,7 +83,7 @@ class CarState(CarStateBase):
         pt_cp.vl["ESP_19"]["ESP_HR_Radgeschw_02"],
       )
 
-      if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT and self.CP.carFingerprint != CAR.VOLKSWAGEN_JETTA_MK7:
+      if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
         ret.carFaultedNonCritical = bool(cam_cp.vl["HCA_01"]["EA_Ruckfreigabe"]) or cam_cp.vl["HCA_01"]["EA_ACC_Sollstatus"] > 0  # EA
 
       ret.brake = pt_cp.vl["ESP_05"]["ESP_Bremsdruck"] / 250.0  # FIXME: this is pressure in Bar, not sure what OP expects
@@ -102,43 +98,23 @@ class CarState(CarStateBase):
                           pt_cp.vl["Gateway_72"]["ZV_HBFS_offen"],
                           pt_cp.vl["Gateway_72"]["ZV_HD_offen"]])
 
-      if self.CP.enableBsm and "SWA_01" in ext_cp.vl:
+      if self.CP.enableBsm:
         # Infostufe: BSM LED on, Warnung: BSM LED flashing
         ret.leftBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_li"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_li"])
         ret.rightBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_re"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_re"])
 
-      acc_src = ext_cp
-      if self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
-        # Camera bus is not on C3; radar/ACC may only exist on the gateway splice.
-        if "ACC_02" in pt_cp.vl:
-          acc_src = pt_cp
-        elif "ACC_02" not in ext_cp.vl:
-          acc_src = None
+      ret.stockFcw = bool(ext_cp.vl["ACC_10"]["AWV2_Freigabe"])
+      ret.stockAeb = bool(ext_cp.vl["ACC_10"]["ANB_Teilbremsung_Freigabe"]) or bool(ext_cp.vl["ACC_10"]["ANB_Zielbremsung_Freigabe"])
 
-      if acc_src is not None and "ACC_10" in acc_src.vl:
-        ret.stockFcw = bool(acc_src.vl["ACC_10"]["AWV2_Freigabe"])
-        ret.stockAeb = bool(acc_src.vl["ACC_10"]["ANB_Teilbremsung_Freigabe"]) or bool(acc_src.vl["ACC_10"]["ANB_Zielbremsung_Freigabe"])
-      if acc_src is not None and "ACC_06" in acc_src.vl:
-        self.acc_type = acc_src.vl["ACC_06"]["ACC_Typ"]
-      acc_limiter_mode = bool(acc_src is not None and "ACC_02" in acc_src.vl and acc_src.vl["ACC_02"]["ACC_Gesetzte_Zeitluecke"] == 0)
-
+      self.acc_type = ext_cp.vl["ACC_06"]["ACC_Typ"]
       self.esp_hold_confirmation = bool(pt_cp.vl["ESP_21"]["ESP_Haltebestaetigung"])
+      acc_limiter_mode = ext_cp.vl["ACC_02"]["ACC_Gesetzte_Zeitluecke"] == 0
       speed_limiter_mode = bool(pt_cp.vl["TSK_06"]["TSK_Limiter_ausgewaehlt"])
 
-      tsk_status = pt_cp.vl["TSK_06"]["TSK_Status"]
-      ret.cruiseState.available = tsk_status in (2, 3, 4, 5)
-      ret.cruiseState.enabled = tsk_status in (3, 4, 5)
-      if self.CP.pcmCruise and acc_src is not None and "ACC_02" in acc_src.vl:
-        ret.cruiseState.speed = acc_src.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS
-      else:
-        ret.cruiseState.speed = 0
-      ret.accFaulted = tsk_status in (6, 7)
-      if self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7 and tsk_status in (0, 1, 6, 7):
-        # Gateway splice latches TSK 6/7 while C3 is plugged in. Do not block
-        # on-road calibration / AOL lane keep with Cruise Fault.
-        ret.accFaulted = False
-        ret.cruiseState.available = True
-        ret.cruiseState.enabled = False
+      ret.cruiseState.available = pt_cp.vl["TSK_06"]["TSK_Status"] in (2, 3, 4, 5)
+      ret.cruiseState.enabled = pt_cp.vl["TSK_06"]["TSK_Status"] in (3, 4, 5)
+      ret.cruiseState.speed = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS if self.CP.pcmCruise else 0
+      ret.accFaulted = pt_cp.vl["TSK_06"]["TSK_Status"] in (6, 7)
 
       ret.leftBlinker = bool(pt_cp.vl["Blinkmodi_02"]["Comfort_Signal_Left"])
       ret.rightBlinker = bool(pt_cp.vl["Blinkmodi_02"]["Comfort_Signal_Right"])
@@ -449,62 +425,17 @@ class CarState(CarStateBase):
     elif CP.flags & VolkswagenFlags.MEB:
       return CarState.get_can_parsers_meb(CP)
 
-    if CP.flags & VolkswagenFlags.MLB:
-      pt_messages, cam_messages = [], []
-      if CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
-        cam_messages += [
-          ("HCA_01", 1),  # From R242 Driver assistance camera, 50Hz if steering/1Hz if not
-        ]
-      return {
-        Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], pt_messages, CanBus(CP).pt),
-        Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], cam_messages, CanBus(CP).cam),
-      }
+    # manually configure some optional and variable-rate/edge-triggered messages
+    pt_messages, cam_messages = [], []
 
-    # MQB (Jetta MK7): explicit lists. This fork's CANParser lazy-adds via vl[] and then
-    # times out missing optional frames (Kombi_03, radar on the other bus) -> canError.
-    # Kombi_03 nan => ignore_alive (freq 0 is NOT optional here).
-    pt_messages = [
-      ("LWI_01", 100),
-      ("LH_EPS_03", 100),
-      ("ESP_19", 100),
-      ("ESP_05", 50),
-      ("ESP_21", 50),
-      ("Motor_20", 50),
-      ("TSK_06", 50),
-      ("ESP_02", 50),
-      ("GRA_ACC_01", 33),
-      ("Gateway_73", 20),
-      ("Gateway_72", 10),
-      ("Motor_14", 10),
-      ("Airbag_02", 5),
-      ("Kombi_01", 2),
-      ("Blinkmodi_02", math.nan if CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7 else 1),
-      ("Kombi_03", math.nan),
-    ]
-    if CP.transmissionType == TransmissionType.direct:
-      pt_messages.append(("Motor_EV_01", 10))
-
-    cam_messages = []
-    if CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
-      # Gateway splice, no camera harness: radar/HCA/LDW are optional on both buses.
-      pt_messages += [(n, math.nan) for n, _ in MqbExtraSignals.fwd_radar_messages + MqbExtraSignals.bsm_radar_messages]
-      cam_messages += [(n, math.nan) for n, _ in MqbExtraSignals.fwd_radar_messages + MqbExtraSignals.bsm_radar_messages]
-      cam_messages += [("LDW_02", math.nan)]
-    else:
-      if CP.networkLocation == NetworkLocation.fwdCamera:
-        pt_messages += MqbExtraSignals.fwd_radar_messages
-        if CP.enableBsm:
-          pt_messages += MqbExtraSignals.bsm_radar_messages
-      if CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
-        cam_messages += [
-          ("HCA_01", 1),  # From R242 Driver assistance camera, 50Hz if steering/1Hz if not
-        ]
-      if CP.networkLocation == NetworkLocation.fwdCamera:
-        cam_messages += [("LDW_02", 10)]
-      else:
-        cam_messages += MqbExtraSignals.fwd_radar_messages
-        if CP.enableBsm:
-          cam_messages += MqbExtraSignals.bsm_radar_messages
+    if not CP.flags & VolkswagenFlags.MLB:
+      pt_messages += [
+        ("Blinkmodi_02", 1)  # From J519 BCM (sent at 1Hz when no lights active, 50Hz when active)
+      ]
+    if CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
+      cam_messages += [
+        ("HCA_01", 1),  # From R242 Driver assistance camera, 50Hz if steering/1Hz if not
+      ]
 
     return {
       Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], pt_messages, CanBus(CP).pt),
@@ -535,8 +466,3 @@ class CarState(CarStateBase):
       Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], pt_messages, CanBus(CP).pt),
       Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], cam_messages, CanBus(CP).cam),
     }
-
-
-class MqbExtraSignals:
-  fwd_radar_messages = [("ACC_06", 50), ("ACC_10", 50), ("ACC_02", 17)]
-  bsm_radar_messages = [("SWA_01", 20)]

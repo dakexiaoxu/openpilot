@@ -198,7 +198,6 @@ class WMI(StrEnum):
   VOLKSWAGEN_ARGENTINA = "8AW"
   VOLKSWAGEN_BRASIL = "9BW"
   SAIC_VOLKSWAGEN = "LSV"
-  VOLKSWAGEN_CHINA_FAW = "LFV"
   SKODA = "TMB"
   SEAT = "VSS"
   AUDI_EUROPE_MPV = "WA1"
@@ -425,7 +424,7 @@ class CAR(Platforms):
     ],
     VolkswagenCarSpecs(mass=1328, wheelbase=2.71),
     chassis_codes={"BU"},
-    wmis={WMI.VOLKSWAGEN_MEXICO_CAR, WMI.VOLKSWAGEN_EUROPE_CAR, WMI.VOLKSWAGEN_CHINA_FAW, WMI.SAIC_VOLKSWAGEN},
+    wmis={WMI.VOLKSWAGEN_MEXICO_CAR, WMI.VOLKSWAGEN_EUROPE_CAR},
   )
   VOLKSWAGEN_PASSAT_MK8 = VolkswagenMQBPlatformConfig(
     [

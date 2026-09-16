@@ -4,10 +4,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 source "$DIR/launch_env.sh"
 
-# Hardcode Volkswagen Jetta MK7 so car selection cannot drift.
-export FINGERPRINT="${FINGERPRINT:-VOLKSWAGEN_JETTA_MK7}"
-export SKIP_FW_QUERY="${SKIP_FW_QUERY:-1}"
-
 export SP_BOOT_TIMING_LOG="${SP_BOOT_TIMING_LOG:-/tmp/starpilot_boot_timing.log}"
 : > "$SP_BOOT_TIMING_LOG" 2>/dev/null || true
 SP_LAUNCH_LAST_SECONDS=$SECONDS
@@ -47,66 +43,6 @@ function agnos_init {
     sudo rm -rf "$SSH_BACKUP_DIR"
   fi
 
-  # Seed SSH as GitHub user dakexiaoxu so a reset cannot wipe authorized_keys.
-  SSH_KEYS_SRC="$DIR/tools/scripts/dakexiaoxu.keys"
-  if [ -f "$SSH_KEYS_SRC" ]; then
-    sudo mkdir -p /data/params/d
-    printf '%s' 'dakexiaoxu' | sudo tee /data/params/d/GithubUsername >/dev/null
-    sudo cp "$SSH_KEYS_SRC" /data/params/d/GithubSshKeys
-    printf '1' | sudo tee /data/params/d/SshEnabled >/dev/null
-    sudo chown comma:comma /data/params/d/GithubSshKeys /data/params/d/GithubUsername /data/params/d/SshEnabled 2>/dev/null || true
-    sudo chmod 600 /data/params/d/GithubSshKeys /data/params/d/SshEnabled 2>/dev/null || true
-  fi
-
-  # Full-time lane keep + resume-cruise-after-brake + MK7 fingerprint must survive reboot/reset.
-  sudo mkdir -p /data/params/d
-  printf '1' | sudo tee /data/params/d/AlwaysOnLateral >/dev/null
-  printf '1' | sudo tee /data/params/d/AlwaysOnLateralLKAS >/dev/null
-  printf '1' | sudo tee /data/params/d/ActivateCruiseAfterBrake >/dev/null
-  printf '1' | sudo tee /data/params/d/ForceFingerprint >/dev/null
-  printf '1' | sudo tee /data/params/d/LaneChanges >/dev/null
-  printf '1' | sudo tee /data/params/d/NudgelessLaneChange >/dev/null
-  printf '0' | sudo tee /data/params/d/PauseAOLOnBrake >/dev/null
-  printf '%s' 'VOLKSWAGEN_JETTA_MK7' | sudo tee /data/params/d/CarModel >/dev/null
-  # Chinese UI + metric units must survive reboot. Do not leave these files missing.
-  printf '%s' 'main_zh-CHS' | sudo tee /data/params/d/LanguageSetting >/dev/null
-  printf '1' | sudo tee /data/params/d/IsMetric >/dev/null
-  # Jetta MK7 has a dedicated NNFF torque model; RDF V4 is the current StarPilot driving model.
-  printf '1' | sudo tee /data/params/d/NNFF >/dev/null
-  printf '0' | sudo tee /data/params/d/NNFFLite >/dev/null
-  printf '1' | sudo tee /data/params/d/LateralTune >/dev/null
-  # Carrot: Alpha Long on so OP can control without stock ACC (TSK 6/7 on this splice).
-  printf '1' | sudo tee /data/params/d/AlphaLongitudinalEnabled >/dev/null
-  printf '0' | sudo tee /data/params/d/DisableOpenpilotLongitudinal >/dev/null
-  if [ ! -s /data/params/d/DrivingModel ]; then
-    printf '%s' 'rdf43' | sudo tee /data/params/d/DrivingModel >/dev/null
-    printf '%s' 'rdf43' | sudo tee /data/params/d/Model >/dev/null
-    printf '%s' 'Regret Driven Framework V4' | sudo tee /data/params/d/DrivingModelName >/dev/null
-    printf '%s' 'v15' | sudo tee /data/params/d/DrivingModelVersion >/dev/null
-    printf '%s' 'v15' | sudo tee /data/params/d/ModelVersion >/dev/null
-  fi
-  sudo chown comma:comma \
-    /data/params/d/AlwaysOnLateral \
-    /data/params/d/AlwaysOnLateralLKAS \
-    /data/params/d/ActivateCruiseAfterBrake \
-    /data/params/d/ForceFingerprint \
-    /data/params/d/LaneChanges \
-    /data/params/d/NudgelessLaneChange \
-    /data/params/d/PauseAOLOnBrake \
-    /data/params/d/CarModel \
-    /data/params/d/LanguageSetting \
-    /data/params/d/IsMetric \
-    /data/params/d/NNFF \
-    /data/params/d/NNFFLite \
-    /data/params/d/LateralTune \
-    /data/params/d/AlphaLongitudinalEnabled \
-    /data/params/d/DisableOpenpilotLongitudinal \
-    /data/params/d/DrivingModel \
-    /data/params/d/Model \
-    /data/params/d/DrivingModelName \
-    /data/params/d/DrivingModelVersion \
-    /data/params/d/ModelVersion 2>/dev/null || true
-
   # TODO: do this without udev in AGNOS
   # udev does this, but sometimes we startup faster
   sudo chgrp gpu /dev/adsprpc-smd /dev/ion /dev/kgsl-3d0
@@ -115,10 +51,24 @@ function agnos_init {
   # StarPilot variables
   sudo chmod 0777 /cache
 
-  # Never flash AGNOS from this tree. Carrot 19.6.3 hanging on updater looks like a frozen comma logo.
+  # Check if AGNOS update is required
   AGNOS_CURRENT_VERSION="$(< /VERSION)"
-  AGNOS_UPDATE_REQUIRED=0
-  sp_boot_timing_line "skip_agnos_update current=${AGNOS_CURRENT_VERSION}"
+  AGNOS_UPDATE_REQUIRED=1
+  for accepted_version in $AGNOS_ACCEPTED_VERSIONS; do
+    if [ "$AGNOS_CURRENT_VERSION" = "$accepted_version" ]; then
+      AGNOS_UPDATE_REQUIRED=0
+      break
+    fi
+  done
+
+  if [ "$AGNOS_UPDATE_REQUIRED" = "1" ]; then
+    AGNOS_PY="$DIR/system/hardware/tici/agnos.py"
+    MANIFEST="$DIR/system/hardware/tici/agnos.json"
+    if $AGNOS_PY --verify $MANIFEST; then
+      sudo reboot
+    fi
+    $DIR/system/hardware/tici/updater $AGNOS_PY $MANIFEST
+  fi
 
   sp_launch_timing "agnos_init_done"
 }
@@ -185,23 +135,16 @@ function launch {
         return
       fi
     fi
-    py_bin="$(command -v python3 || command -v python || true)"
+    py_bin="/usr/local/venv/bin/python3"
+    [ -x "$py_bin" ] || py_bin="$(command -v python3 || true)"
     [ -n "$py_bin" ] || return
-    echo "Starting Amap/Carrot navi bridge on 7000 and 7713."
-    if command -v setsid >/dev/null 2>&1; then
-      setsid bash "$watchdog_script" "$DIR" "$py_bin" >> /tmp/amap_carrot_bridge.log 2>&1 &
-    else
-      bash "$watchdog_script" "$DIR" "$py_bin" >> /tmp/amap_carrot_bridge.log 2>&1 &
+    if [ -d "$DIR/pydeps" ]; then
+      export PYTHONPATH="$DIR/pydeps:$PYTHONPATH"
     fi
+    chmod +x "$watchdog_script" 2>/dev/null || true
+    nohup bash "$watchdog_script" "$DIR" "$py_bin" >/tmp/amap_carrot_watchdog.log 2>&1 &
   }
   start_amap_carrot_bridge
-  if command -v iptables >/dev/null 2>&1; then
-    sudo iptables -C INPUT -p tcp --dport 8082 -j ACCEPT 2>/dev/null || sudo iptables -I INPUT -p tcp --dport 8082 -j ACCEPT
-    sudo iptables -C INPUT -p tcp --dport 7000 -j ACCEPT 2>/dev/null || sudo iptables -I INPUT -p tcp --dport 7000 -j ACCEPT
-    sudo iptables -C INPUT -p tcp --dport 7713 -j ACCEPT 2>/dev/null || sudo iptables -I INPUT -p tcp --dport 7713 -j ACCEPT
-    sudo iptables -C INPUT -p udp --dport 7706 -j ACCEPT 2>/dev/null || sudo iptables -I INPUT -p udp --dport 7706 -j ACCEPT
-    sudo iptables -C INPUT -p udp --dport 7705 -j ACCEPT 2>/dev/null || sudo iptables -I INPUT -p udp --dport 7705 -j ACCEPT
-  fi
 
   # hardware specific init
   if [ -f /AGNOS ]; then

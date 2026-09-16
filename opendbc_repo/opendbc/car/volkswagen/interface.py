@@ -123,8 +123,7 @@ class CarInterface(CarInterfaceBase):
       ret.longitudinalTuning.kiV = [0.4, 0.]
 
     ret.alphaLongitudinalAvailable = ret.networkLocation == NetworkLocation.gateway or docs
-    # Same as dakexiaoxu Carrot/Lane: MQB enables OP long from Alpha Long alone.
-    if alpha_long and (ret.alphaLongitudinalAvailable or not (ret.flags & VolkswagenFlags.MEB)):
+    if alpha_long and (not ret.flags & VolkswagenFlags.MEB or ret.alphaLongitudinalAvailable):
       # Panda ALLOW_DEBUG firmware is required for Volkswagen longitudinal control.
       ret.openpilotLongitudinalControl = True
       safety_configs[0].safetyParam |= VolkswagenSafetyFlags.LONG_CONTROL.value

@@ -174,8 +174,9 @@ class CANParser:
     self.ts_nanos[msg.address] = {s: 0 for s in signal_names}
     self.ts_nanos[msg.name] = self.ts_nanos[msg.address]
 
-    # Unlisted messages (VLDict lazy-add) and freq 0/nan must not fail can_valid.
-    optional_msg = freq is None or (isinstance(freq, float) and math.isnan(freq)) or (freq is not None and freq <= 0)
+    # Legacy compatibility: many car ports use freq=0 for optional/asynchronous messages.
+    # In this parser, those should not participate in alive timeout validity checks.
+    optional_msg = freq is not None and (math.isnan(freq) or freq <= 0)
     state = MessageState(
       address=msg.address,
       name=msg.name,

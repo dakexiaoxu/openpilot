@@ -12,6 +12,14 @@ if [ -z "$PY_BIN" ]; then
   exit 1
 fi
 
+export PYTHONPATH="${DIR}${PYTHONPATH:+:$PYTHONPATH}"
+if [ -d "$DIR/pydeps" ]; then
+  export PYTHONPATH="$DIR/pydeps:$PYTHONPATH"
+fi
+if [ -d "$DIR/starpilot/third_party" ]; then
+  export PYTHONPATH="$DIR/starpilot/third_party:$PYTHONPATH"
+fi
+
 if command -v flock >/dev/null 2>&1; then
   exec 9>"$LOCK_FILE"
   if ! flock -n 9; then
