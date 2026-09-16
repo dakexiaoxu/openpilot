@@ -78,6 +78,13 @@ function agnos_init {
   # Jetta splice: keep Alpha Long off so panda does not TX ACC.
   printf '0' | sudo tee /data/params/d/AlphaLongitudinalEnabled >/dev/null
   printf '1' | sudo tee /data/params/d/DisableOpenpilotLongitudinal >/dev/null
+  # Drop last-route volkswagen safety so panda cannot come up TX'ing HCA/ACC.
+  sudo rm -f /data/params/d/CarParams \
+             /data/params/d/CarParamsCache \
+             /data/params/d/CarParamsPrevRoute \
+             /data/params/d/CarParamsPersistent \
+             /data/params/d/StarPilotCarParams \
+             /data/params/d/StarPilotCarParamsPersistent
   if [ ! -s /data/params/d/DrivingModel ]; then
     printf '%s' 'rdf43' | sudo tee /data/params/d/DrivingModel >/dev/null
     printf '%s' 'rdf43' | sudo tee /data/params/d/Model >/dev/null

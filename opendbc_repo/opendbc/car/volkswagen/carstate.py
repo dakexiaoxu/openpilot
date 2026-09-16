@@ -131,7 +131,9 @@ class CarState(CarStateBase):
         ret.cruiseState.speed = acc_src.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS
       else:
         ret.cruiseState.speed = 0
-      ret.accFaulted = pt_cp.vl["TSK_06"]["TSK_Status"] in (6, 7)
+      # Listen-only splice: do not map latched TSK 6/7 onto C3 as Cruise Fault.
+      # Stock Front Assist still shows on the cluster until the car is ignition-cycled.
+      ret.accFaulted = False if self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7 else pt_cp.vl["TSK_06"]["TSK_Status"] in (6, 7)
 
       ret.leftBlinker = bool(pt_cp.vl["Blinkmodi_02"]["Comfort_Signal_Left"])
       ret.rightBlinker = bool(pt_cp.vl["Blinkmodi_02"]["Comfort_Signal_Right"])
