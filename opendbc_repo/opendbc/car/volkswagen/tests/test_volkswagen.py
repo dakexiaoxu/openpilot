@@ -97,6 +97,7 @@ class TestVolkswagenPlatformConfigs:
       assert not cp.openpilotLongitudinalControl
       assert cp.pcmCruise
       assert not (cp.safetyConfigs[-1].safetyParam & VolkswagenSafetyFlags.LONG_CONTROL)
+      assert cp.safetyConfigs[-1].safetyModel == CarParams.SafetyModel.noOutput
 
   @pytest.mark.parametrize("data_hex", (
     "fc03fcfcfc0f0000",

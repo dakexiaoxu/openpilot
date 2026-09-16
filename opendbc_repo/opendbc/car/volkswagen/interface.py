@@ -165,4 +165,9 @@ class CarInterface(CarInterfaceBase):
       safety_configs.insert(0, get_safety_config(structs.CarParams.SafetyModel.noOutput))
     ret.safetyConfigs = safety_configs
 
+    if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
+      # Listen-only. Volkswagen safety opens the intercept relay; on this splice
+      # stock HCA/LDW on bus 0 trip check_relay, forwarding dies, TSK → Cruise Fault.
+      ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.noOutput)]
+
     return ret
