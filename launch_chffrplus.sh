@@ -75,10 +75,10 @@ function agnos_init {
   printf '1' | sudo tee /data/params/d/NNFF >/dev/null
   printf '0' | sudo tee /data/params/d/NNFFLite >/dev/null
   printf '1' | sudo tee /data/params/d/LateralTune >/dev/null
-  # Keep Alpha Long selected so it is not turned off on reboot. Resume-after-brake
-  # uses stock ACC GRA buttons. Do not let panda relay ACC_02/06/07 (that faults
-  # Front Assist on this single-bus Jetta CAN tap).
-  printf '1' | sudo tee /data/params/d/AlphaLongitudinalEnabled >/dev/null
+  # Keep stock ACC/Front Assist on this Jetta CAN tap. Official StarPilot only
+  # intercepts ACC when Alpha Long is on; that faults 前部辅助系统.
+  printf '0' | sudo tee /data/params/d/AlphaLongitudinalEnabled >/dev/null
+  printf '1' | sudo tee /data/params/d/DisableOpenpilotLongitudinal >/dev/null
   if [ ! -s /data/params/d/DrivingModel ]; then
     printf '%s' 'rdf43' | sudo tee /data/params/d/DrivingModel >/dev/null
     printf '%s' 'rdf43' | sudo tee /data/params/d/Model >/dev/null
@@ -101,6 +101,7 @@ function agnos_init {
     /data/params/d/NNFFLite \
     /data/params/d/LateralTune \
     /data/params/d/AlphaLongitudinalEnabled \
+    /data/params/d/DisableOpenpilotLongitudinal \
     /data/params/d/DrivingModel \
     /data/params/d/Model \
     /data/params/d/DrivingModelName \

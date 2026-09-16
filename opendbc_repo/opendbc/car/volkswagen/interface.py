@@ -130,15 +130,21 @@ class CarInterface(CarInterfaceBase):
       ret.longitudinalTuning.kiV = [0.4, 0.]
 
     ret.alphaLongitudinalAvailable = ret.networkLocation == NetworkLocation.gateway or docs
-    # Do not enable OP long unless this is a real dual-bus gateway. LONG_CONTROL
-    # relays ACC_02/06/07 on the tapped CAN, which faults TSK (Cruise Fault) and
-    # cluster Front Assist.
-    if alpha_long and ret.alphaLongitudinalAvailable:
+    if alpha_long and (not ret.flags & VolkswagenFlags.MEB or ret.alphaLongitudinalAvailable):
       # Panda ALLOW_DEBUG firmware is required for Volkswagen longitudinal control.
       ret.openpilotLongitudinalControl = True
       safety_configs[0].safetyParam |= VolkswagenSafetyFlags.LONG_CONTROL.value
       if ret.transmissionType == TransmissionType.manual:
         ret.minEnableSpeed = 4.5
+
+    # firestar5683/StarPilot enables MQB OP long from Alpha Long, which makes panda
+    # relay ACC_02/06/07. This Jetta is a single-bus CAN tap, so that faults stock
+    # Front Assist and TSK (Cruise Fault). Keep stock ACC like a camera-harness
+    # install with Alpha Long off.
+    if candidate == CAR.VOLKSWAGEN_JETTA_MK7:
+      ret.openpilotLongitudinalControl = False
+      ret.alphaLongitudinalAvailable = False
+      safety_configs[0].safetyParam &= ~int(VolkswagenSafetyFlags.LONG_CONTROL)
 
     # Per-vehicle overrides
 

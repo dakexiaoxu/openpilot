@@ -5,7 +5,7 @@ from opendbc.car.lateral import apply_driver_steer_torque_limits
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.interfaces import CarControllerBase
 from opendbc.car.volkswagen import mebcan, mlbcan, mqbcan, pqcan
-from opendbc.car.volkswagen.values import CanBus, CarControllerParams, VolkswagenFlags
+from opendbc.car.volkswagen.values import CAR, CanBus, CarControllerParams, VolkswagenFlags
 
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
 LongCtrlState = structs.CarControl.Actuators.LongControlState
@@ -107,7 +107,11 @@ class CarController(CarControllerBase):
 
         self.eps_timer_soft_disable_alert = self.hca_frame_timer_running > self.CCP.STEER_TIME_ALERT / DT_CTRL
         self.apply_torque_last = apply_torque
-        can_sends.append(self.CCS.create_steering_control(self.packer_pt, self.CAN.pt, apply_torque, hca_enabled))
+        # Single-bus Jetta CAN tap: do not spam disabled HCA onto the live ACC/Front
+        # Assist CAN. Official camera harness intercepts HCA; a tap would collide.
+        jetta_can_tap = self.CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7
+        if not jetta_can_tap or hca_enabled:
+          can_sends.append(self.CCS.create_steering_control(self.packer_pt, self.CAN.pt, apply_torque, hca_enabled))
 
       if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
         # Pacify VW Emergency Assist driver inactivity detection by changing its view of driver steering input torque
@@ -150,7 +154,7 @@ class CarController(CarControllerBase):
 
     # **** HUD Controls ***************************************************** #
 
-    if self.frame % self.CCP.LDW_STEP == 0:
+    if self.frame % self.CCP.LDW_STEP == 0 and self.CP.carFingerprint != CAR.VOLKSWAGEN_JETTA_MK7:
       hud_alert = 0
       if hud_control.visualAlert in (VisualAlert.steerRequired, VisualAlert.ldw):
         hud_alert = self.CCP.LDW_MESSAGES["laneAssistTakeOver"]
@@ -181,11 +185,8 @@ class CarController(CarControllerBase):
 
     # **** Stock ACC Button Controls **************************************** #
 
-    # Resume-after-brake (ActivateCruiseAfterBrake) sets CC.cruiseControl.resume.
-    # On this Jetta CAN tap, stock ACC must stay in the loop: send GRA resume/cancel
-    # even if the Alpha Long toggle is on. Panda LONG_CONTROL is not used here.
-    gra_counter = CS.gra_stock_values.get("COUNTER") if CS.gra_stock_values else None
-    gra_send_ready = gra_counter is not None and gra_counter != self.gra_acc_counter_last
+    # Same as firestar5683/StarPilot: only spoof GRA when using stock ACC.
+    gra_send_ready = self.CP.pcmCruise and CS.gra_stock_values.get("COUNTER") != self.gra_acc_counter_last
     if gra_send_ready and (CC.cruiseControl.cancel or CC.cruiseControl.resume):
       can_sends.append(self.CCS.create_acc_buttons_control(self.packer_pt, self.CAN.ext, CS.gra_stock_values,
                                                            cancel=CC.cruiseControl.cancel, resume=CC.cruiseControl.resume))
@@ -198,7 +199,6 @@ class CarController(CarControllerBase):
       new_actuators.accel = self.accel_last
 
     self.lead_distance_bars_last = hud_control.leadDistanceBars
-    if gra_counter is not None:
-      self.gra_acc_counter_last = gra_counter
+    self.gra_acc_counter_last = CS.gra_stock_values.get("COUNTER")
     self.frame += 1
     return new_actuators, can_sends
