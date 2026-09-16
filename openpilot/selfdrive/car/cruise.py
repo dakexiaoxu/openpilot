@@ -790,7 +790,9 @@ class VCruiseCarrot:
         self._engage_soft_hold()
       # GM: autoResume
       elif self.params.get_bool("ActivateCruiseAfterBrake"):
-        self.params.put_bool_nonblocking("ActivateCruiseAfterBrake", False)
+        # Volkswagen keeps this as a user setting. GM still uses it as a one-shot.
+        if getattr(self.CP, "brand", "") != "volkswagen":
+          self.params.put_bool_nonblocking("ActivateCruiseAfterBrake", False)
         self._cruise_control(1, -1, "Cruise on (brake)")
       elif self.v_cruise_kph < self.v_ego_kph_set:
         self.v_cruise_kph = self.v_ego_kph_set

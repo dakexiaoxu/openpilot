@@ -4,6 +4,10 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 source "$DIR/launch_env.sh"
 
+# Keep this Jetta MK7 on a gateway splice from falling back to MOCK / CAN error.
+export FINGERPRINT="${FINGERPRINT:-VOLKSWAGEN_JETTA_MK7}"
+export SKIP_FW_QUERY="${SKIP_FW_QUERY:-1}"
+
 function cleanup_stale_git_lfs_hooks {
   # Some deployed checkouts still contain hooks installed by git-lfs even
   # though the executable is no longer part of the device image. Those hooks

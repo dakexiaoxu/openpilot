@@ -98,7 +98,10 @@ class CarState(CarStateBase):
 
     if True:
       # MQB-specific
-      self.upscale_lead_car_signal = bool(pt_cp.vl["Kombi_03"]["KBI_Variante"])  # Analog vs digital instrument cluster
+      try:
+        self.upscale_lead_car_signal = bool(pt_cp.vl["Kombi_03"]["KBI_Variante"])  # Analog vs digital instrument cluster
+      except Exception:
+        self.upscale_lead_car_signal = False
 
       ret.wheelSpeeds = self.get_wheel_speeds(
         pt_cp.vl["ESP_19"]["ESP_VL_Radgeschw_02"],

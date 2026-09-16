@@ -358,6 +358,7 @@ class CAR(Platforms):
   VOLKSWAGEN_JETTA_MK7 = VolkswagenMQBPlatformConfig(
     [
       VWCarDocs("Volkswagen Jetta 2018-24"),
+      VWCarDocs("Volkswagen Jetta 2018-23"),
       VWCarDocs("Volkswagen Jetta GLI 2021-24"),
       VWCarDocs("Volkswagen VOLKSWAGEN_JETTA_MK7"),
     ],
