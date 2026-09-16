@@ -469,13 +469,17 @@ class CarState(CarStateBase):
       pt_messages.append(("Motor_EV_01", 10))
 
     cam_messages = []
-    # Gateway CAN splice: radar/ACC/BSM/LDW arrive on panda bus 0 via J533.
-    # Do not require 10Hz LDW_02 on the unused camera port (bus 2).
+    # Gateway CAN splice: TSK/EPS live on bus 0. ACC_02/06/10 and SWA_01 do not
+    # (C3 logs: timeout -> canError / Unknown Vehicle Variant). Keep them optional
+    # so vl[] does not lazy-add them as required. Camera port (bus 2) is unused.
     if CP.carFingerprint == CAR.VOLKSWAGEN_JETTA_MK7:
-      pt_messages += MqbExtraSignals.fwd_radar_messages
-      if CP.enableBsm:
-        pt_messages += MqbExtraSignals.bsm_radar_messages
-      pt_messages += [("LDW_02", math.nan)]
+      pt_messages += [
+        ("ACC_06", math.nan),
+        ("ACC_10", math.nan),
+        ("ACC_02", math.nan),
+        ("SWA_01", math.nan),
+        ("LDW_02", math.nan),
+      ]
       cam_messages += [
         ("LDW_02", math.nan),
         ("HCA_01", math.nan),
