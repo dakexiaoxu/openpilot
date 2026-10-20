@@ -29,6 +29,18 @@ from openpilot.common.swaglog import cloudlog, add_file_handler
 from openpilot.system.version import get_build_metadata
 from openpilot.system.hardware.hw import Paths
 
+JETTA_MK7_CAR_NAME = "Volkswagen Jetta 2018-23"
+
+
+def migrate_jetta_mk7_selection(params: Params) -> None:
+  selected = params.get("CarSelected3")
+  if isinstance(selected, (bytes, bytearray)):
+    selected = selected.decode("utf-8", errors="ignore")
+  text = str(selected or "").strip()
+  if not text or text.upper() == "MOCK":
+    params.put("CarSelected3", JETTA_MK7_CAR_NAME)
+
+
 def set_default_params():
   params = Params()
   for k in params.all_keys():
@@ -72,6 +84,7 @@ def manager_init() -> UpdateStatus:
   update_status = UpdateStatus(BASEDIR)
 
   params = Params()
+  migrate_jetta_mk7_selection(params)
   params.clear_all(ParamKeyFlag.CLEAR_ON_MANAGER_START)
   params.clear_all(ParamKeyFlag.CLEAR_ON_ONROAD_TRANSITION)
   params.clear_all(ParamKeyFlag.CLEAR_ON_OFFROAD_TRANSITION)
